@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07696f255307748279bcc0dc452432a7, type: 3}
+  m_Name: HuntersBow
+  m_EditorClassIdentifier: Assembly-CSharp::RPG.Items.WeaponDefinition
+  itemId: hunters_bow
+  displayName: Hunter's Bow
+  icon: {fileID: 0}
+  description: 
+  stats:
+  - Stat: 1
+    BaseValue: 4
+    PerItemLevel: 0.85
+  - Stat: 3
+    BaseValue: 0.3
+    PerItemLevel: 0.003
+  - Stat: 6
+    BaseValue: 0.2
+    PerItemLevel: 0.005
+  dropWeight: 6
+  baseValue: 18
+  weaponType: 1
+  range: 9.5
+  arcDegrees: 0

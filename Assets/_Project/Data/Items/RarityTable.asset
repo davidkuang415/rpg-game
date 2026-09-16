@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b84c29f2346744c9f9c042329540e717, type: 3}
+  m_Name: RarityTable
+  m_EditorClassIdentifier: Assembly-CSharp::RPG.Items.RarityTable
+  entries:
+  - Rarity: 0
+    DisplayName: Common
+    StatMultiplier: 1
+    LootWeight: 55
+    MaxEnchantments: 0
+    NaturalEnchantChance: 0
+    AllowsManualEnchanting: 0
+    SupportsSetBonus: 0
+    RecycleValueMultiplier: 1
+    Color: {r: 0.75, g: 0.75, b: 0.78, a: 1}
+  - Rarity: 1
+    DisplayName: Uncommon
+    StatMultiplier: 1.15
+    LootWeight: 25
+    MaxEnchantments: 0
+    NaturalEnchantChance: 0
+    AllowsManualEnchanting: 0
+    SupportsSetBonus: 0
+    RecycleValueMultiplier: 1.6
+    Color: {r: 0.45, g: 0.85, b: 0.45, a: 1}
+  - Rarity: 2
+    DisplayName: Rare
+    StatMultiplier: 1.35
+    LootWeight: 13
+    MaxEnchantments: 0
+    NaturalEnchantChance: 0
+    AllowsManualEnchanting: 0
+    SupportsSetBonus: 0
+    RecycleValueMultiplier: 2.6
+    Color: {r: 0.35, g: 0.65, b: 1, a: 1}
+  - Rarity: 3
+    DisplayName: Epic
+    StatMultiplier: 1.6
+    LootWeight: 5
+    MaxEnchantments: 1
+    NaturalEnchantChance: 0.5
+    AllowsManualEnchanting: 0
+    SupportsSetBonus: 0
+    RecycleValueMultiplier: 4.5
+    Color: {r: 0.72, g: 0.4, b: 1, a: 1}
+  - Rarity: 4
+    DisplayName: Legendary
+    StatMultiplier: 1.9
+    LootWeight: 1.8
+    MaxEnchantments: 3
+    NaturalEnchantChance: 0.7
+    AllowsManualEnchanting: 1
+    SupportsSetBonus: 0
+    RecycleValueMultiplier: 9
+    Color: {r: 1, g: 0.62, b: 0.2, a: 1}
+  - Rarity: 5
+    DisplayName: Mythic
+    StatMultiplier: 2.3
+    LootWeight: 0.2
+    MaxEnchantments: 3
+    NaturalEnchantChance: 1
+    AllowsManualEnchanting: 1
+    SupportsSetBonus: 1
+    RecycleValueMultiplier: 18
+    Color: {r: 1, g: 0.35, b: 0.45, a: 1}

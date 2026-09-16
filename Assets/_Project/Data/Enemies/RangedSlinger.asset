@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6abca235ee4a4ce3a847d51d4a0da2c, type: 3}
+  m_Name: RangedSlinger
+  m_EditorClassIdentifier: Assembly-CSharp::RPG.Enemies.EnemyData
+  enemyId: ranged_slinger
+  displayName: Slinger
+  archetype: 1
+  maxHealth: 28
+  attack: 6
+  defense: 0
+  moveSpeed: 2.2
+  attackSpeed: 0.6
+  attackRange: 7
+  detectionRange: 11
+  memorySeconds: 3
+  attackWindupSeconds: 0.35
+  lootTable: {fileID: 11400000, guid: cfcb4c0fad74f49b49526da72b02d9bc, type: 2}
+  xpReward: 12
+  goldReward: 6
+  enemyPrefab: {fileID: 4108096969800527739, guid: 93232589c919d45f1b0ffbbade3e5da2, type: 3}
+  bodyTint: {r: 0.85, g: 0.55, b: 0.95, a: 1}
+  bodyScale: 0.8

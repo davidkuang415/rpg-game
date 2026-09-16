@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6abca235ee4a4ce3a847d51d4a0da2c, type: 3}
+  m_Name: MeleeGrunt
+  m_EditorClassIdentifier: Assembly-CSharp::RPG.Enemies.EnemyData
+  enemyId: melee_grunt
+  displayName: Grunt
+  archetype: 0
+  maxHealth: 40
+  attack: 8
+  defense: 0
+  moveSpeed: 2.7
+  attackSpeed: 0.9
+  attackRange: 1.1
+  detectionRange: 9
+  memorySeconds: 3
+  attackWindupSeconds: 0.35
+  lootTable: {fileID: 11400000, guid: cfcb4c0fad74f49b49526da72b02d9bc, type: 2}
+  xpReward: 10
+  goldReward: 5
+  enemyPrefab: {fileID: 4668994292909427834, guid: 1e85a3351dcad48059a453347451cf69, type: 3}
+  bodyTint: {r: 0.9, g: 0.35, b: 0.35, a: 1}
+  bodyScale: 0.85

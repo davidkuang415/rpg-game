@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 929a5edd15b084897a179d9aa3e23ad5, type: 3}
+  m_Name: LootTable_Standard
+  m_EditorClassIdentifier: Assembly-CSharp::RPG.Loot.LootTableData
+  dropChance: 0.28
+  guaranteedDrop: 0
+  rollCount: 1
+  possibleItems:
+  - {fileID: 11400000, guid: bcde33fe33a9b48ca915b1c926547613, type: 2}
+  - {fileID: 11400000, guid: 60831f02673844a619975b0aea8a2380, type: 2}
+  - {fileID: 11400000, guid: 3c89e64bcd1f74f5294d19fab652809e, type: 2}
+  - {fileID: 11400000, guid: a0d66f0f139da4558b5f41c4b710ea8d, type: 2}
+  - {fileID: 11400000, guid: df0a7971566404a2996e1dcb9502bb36, type: 2}
+  - {fileID: 11400000, guid: 663ffb499f6a44eb98a9c896dfdba82b, type: 2}
+  - {fileID: 11400000, guid: 64958b54c25de435d9b860870232f014, type: 2}
+  - {fileID: 11400000, guid: 4a98923afb71d4f20a99c0fae2481ab3, type: 2}
+  - {fileID: 11400000, guid: 0f4cb76acf1ca43cf857e590132606a7, type: 2}
+  itemLevelOffsetMin: 0
+  itemLevelOffsetMax: 1
+  minimumRarity: 0
+  luckPerEnemyLevel: 0.01
