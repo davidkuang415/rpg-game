@@ -146,7 +146,7 @@ namespace RPG.EditorTools
             var registrar = EditorSetupUtility.EnsureComponent<PlayerRegistrar>(player);
             EditorSetupUtility.SetPrivateField(registrar, "playerReference", playerReference);
 
-            EditorSetupUtility.EnsureComponent<PlayerDeathHandler>(player);
+            // Death handling belongs to StageFailureHandler from Phase 10 onward.
             EditorSetupUtility.EnsureComponent<HitFlash>(player);
         }
 

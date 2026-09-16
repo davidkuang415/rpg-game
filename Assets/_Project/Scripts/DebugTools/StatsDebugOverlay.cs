@@ -7,6 +7,7 @@ using RPG.Player;
 using RPG.Items;
 using RPG.Loot;
 using RPG.Progression;
+using RPG.Save;
 using RPG.Stages;
 using RPG.Stats;
 using RPG.UI;
@@ -33,6 +34,7 @@ namespace RPG.DebugTools
         [SerializeField] private CurrencyWallet wallet;
         [SerializeField] private RewardClaimer rewardClaimer;
         [SerializeField] private InventoryPanel inventoryPanel;
+        [SerializeField] private SaveManager saveManager;
 
         [Header("Loot")]
         [SerializeField] private StageRewardCollector rewardCollector;
@@ -161,7 +163,7 @@ namespace RPG.DebugTools
         {
             if (rewardCollector == null) return;
 
-            GUILayout.BeginArea(new Rect(280f, 50f, 300f, 460f), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(280f, 50f, 300f, 560f), GUI.skin.box);
 
             StageRewards pending = rewardCollector.Pending;
             GUILayout.Label("Pending Rewards", _headerStyle);
@@ -219,6 +221,17 @@ namespace RPG.DebugTools
             }
             if (inventory != null && GUILayout.Button("Clear Bag")) inventory.ClearAll();
             GUILayout.EndHorizontal();
+
+            if (saveManager != null)
+            {
+                GUILayout.Space(6f);
+                GUILayout.Label("Profile", _headerStyle);
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Save")) saveManager.Save();
+                if (GUILayout.Button("Load")) saveManager.Load();
+                if (GUILayout.Button("Wipe")) saveManager.DeleteSave();
+                GUILayout.EndHorizontal();
+            }
 
             GUILayout.EndArea();
         }

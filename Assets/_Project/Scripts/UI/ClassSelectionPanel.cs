@@ -40,8 +40,10 @@ namespace RPG.UI
 
         private void Start()
         {
+            // Start order between this and GameFlowController is not guaranteed, so an already
+            // open panel is left alone rather than being closed out from under the flow.
             if (showOnStart) Show();
-            else Hide();
+            else if (!IsOpen) Hide();
         }
 
         public override void Show()
