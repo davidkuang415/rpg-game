@@ -33,14 +33,16 @@ namespace RPG.DebugTools
         [SerializeField] private InventoryManager inventory;
         [SerializeField] private CurrencyWallet wallet;
         [SerializeField] private RewardClaimer rewardClaimer;
-        [SerializeField] private InventoryPanel inventoryPanel;
+        [SerializeField] private HubScreen hubScreen;
         [SerializeField] private SaveManager saveManager;
 
         [Header("Loot")]
         [SerializeField] private StageRewardCollector rewardCollector;
         [SerializeField] private ItemRegistry itemRegistry;
         [SerializeField] private RarityTable rarityTable;
-        [SerializeField] private bool startVisible = true;
+        [Tooltip("Off by default: the player-facing stats now live on the hub's gear page, " +
+                 "and this overlay is a development tool that should not sit over the arena.")]
+        [SerializeField] private bool startVisible;
 
         private bool _visible;
         private GUIStyle _labelStyle;
@@ -215,9 +217,11 @@ namespace RPG.DebugTools
             }
 
             GUILayout.BeginHorizontal();
-            if (inventoryPanel != null && !inventoryPanel.IsOpen && GUILayout.Button("Open Bag"))
+            if (hubScreen != null && !hubScreen.IsOpen && GUILayout.Button("Open Hub"))
             {
-                inventoryPanel.Show();
+                // Page 2 is the bag. Opening straight to it keeps the debug shortcut as short
+                // as it was before the hub existed.
+                hubScreen.ShowOnPage(2);
             }
             if (inventory != null && GUILayout.Button("Clear Bag")) inventory.ClearAll();
             GUILayout.EndHorizontal();

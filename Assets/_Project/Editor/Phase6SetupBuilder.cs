@@ -4,7 +4,6 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 using RPG.Combat.Projectiles;
 using RPG.Core;
 using RPG.Core.Events;
@@ -82,8 +81,7 @@ namespace RPG.EditorTools
             RemoveLegacySceneContent();
 
             StageManager stageManager = SetUpStageManager(stageRegistry, stageProgress, stageEvents, playerReference);
-            StageSelectPanel stagePanel = BuildStageSelectPanel(hud, stageRegistry, stageProgress, player);
-            SetUpGameFlow(stagePanel, stageManager, stageEvents, hud);
+            SetUpGameFlow(stageManager, stageEvents, hud);
             WireDebugOverlay(stageManager);
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -91,7 +89,7 @@ namespace RPG.EditorTools
             AssetDatabase.SaveAssets();
 
             Debug.Log("<b>[Phase 6]</b> Stages installed. Play: pick a class, then a stage. " +
-                      "Stage 2 starts locked until you clear Stage 1.");
+                      "the stage list. Stage 2 starts locked until you clear Stage 1.");
         }
 
         private static Scene EnsureTestSceneOpen()
@@ -473,67 +471,11 @@ namespace RPG.EditorTools
             return manager;
         }
 
-        private static StageSelectPanel BuildStageSelectPanel(GameObject hud, StageRegistry registry,
-            StageProgressState progress, GameObject player)
-        {
-            Transform existing = EditorSetupUtility.FindChild(hud.transform, "StageSelectPanel");
-            if (existing != null) Object.DestroyImmediate(existing.gameObject);
-
-            Image panelImage = EditorSetupUtility.CreateUiImage("StageSelectPanel", hud.transform,
-                null, new Color(0.04f, 0.05f, 0.08f, 0.94f));
-            var panelRect = (RectTransform)panelImage.transform;
-            EditorSetupUtility.StretchFull(panelRect);
-            panelRect.SetAsLastSibling();
-
-            Text title = EditorSetupUtility.CreateUiText("Title", panelRect,
-                "SELECT STAGE", 54, TextAnchor.MiddleCenter);
-            var titleRect = (RectTransform)title.transform;
-            titleRect.anchorMin = titleRect.anchorMax = new Vector2(0.5f, 1f);
-            titleRect.sizeDelta = new Vector2(1000f, 100f);
-            titleRect.anchoredPosition = new Vector2(0f, -260f);
-
-            GameObject container = EditorSetupUtility.CreateUiObject("ButtonContainer", panelRect);
-            var containerRect = (RectTransform)container.transform;
-            containerRect.anchorMin = containerRect.anchorMax = new Vector2(0.5f, 0.5f);
-            containerRect.sizeDelta = new Vector2(820f, 800f);
-            containerRect.anchoredPosition = new Vector2(0f, -40f);
-
-            var layout = container.AddComponent<VerticalLayoutGroup>();
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.spacing = 24f;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
-
-            Image buttonImage = EditorSetupUtility.CreateUiImage("StageButtonTemplate", containerRect,
-                null, new Color(0.18f, 0.28f, 0.22f));
-            var button = buttonImage.gameObject.AddComponent<Button>();
-            button.targetGraphic = buttonImage;
-
-            var layoutElement = buttonImage.gameObject.AddComponent<LayoutElement>();
-            layoutElement.preferredHeight = 150f;
-            layoutElement.preferredWidth = 800f;
-
-            Text label = EditorSetupUtility.CreateUiText("Label", buttonImage.transform,
-                "Stage", 32, TextAnchor.MiddleCenter);
-            EditorSetupUtility.StretchFull((RectTransform)label.transform);
-
-            buttonImage.gameObject.SetActive(false);
-
-            var panel = panelImage.gameObject.AddComponent<StageSelectPanel>();
-            EditorSetupUtility.SetPrivateField(panel, "registry", registry);
-            EditorSetupUtility.SetPrivateField(panel, "progress", progress);
-            EditorSetupUtility.SetPrivateField(panel, "titleLabel", title);
-            EditorSetupUtility.SetPrivateField(panel, "buttonContainer", containerRect);
-            EditorSetupUtility.SetPrivateField(panel, "buttonTemplate", button);
-            EditorSetupUtility.SetPrivateField(panel, "panelRoot", panelImage.gameObject);
-            EditorSetupUtility.SetPrivateField(panel, "playerController", player.GetComponent<PlayerController>());
-
-            return panel;
-        }
-
-        private static void SetUpGameFlow(StageSelectPanel stagePanel, StageManager stageManager,
+        /// <summary>
+        /// Wires the flow to the systems it sequences. The stage list itself is not built here:
+        /// since Phase 11 it is a page inside the hub, and the Phase 11 tool owns it.
+        /// </summary>
+        private static void SetUpGameFlow(StageManager stageManager,
             StageEventChannel events, GameObject hud)
         {
             GameObject systems = GameObject.Find("GameSystems");
@@ -543,7 +485,6 @@ namespace RPG.EditorTools
 
             EditorSetupUtility.SetPrivateField(flow, "classSelectionPanel",
                 classPanel != null ? classPanel.GetComponent<ClassSelectionPanel>() : null);
-            EditorSetupUtility.SetPrivateField(flow, "stageSelectPanel", stagePanel);
             EditorSetupUtility.SetPrivateField(flow, "stageManager", stageManager);
             EditorSetupUtility.SetPrivateField(flow, "stageEvents", events);
         }

@@ -10,17 +10,17 @@ using RPG.Stats;
 namespace RPG.UI
 {
     /// <summary>
-    /// The bag and equipment screen.
+    /// The bag: everything you own but are not wearing.
     ///
-    /// Interaction is deliberately minimal for the MVP: tap a bag item to equip it, tap an
-    /// equipped slot to unequip it, read the result in the details box. Everything is rebuilt
-    /// from the inventory and equipment managers on every change, so the screen can never
-    /// drift out of sync with the data.
+    /// Tap an item to equip it and read the result in the details box. What is currently
+    /// equipped lives one swipe to the left, on the gear page - this screen is only the
+    /// storage half.
     ///
-    /// Presentation only - every rule (slot, class, capacity) lives in EquipmentManager and
-    /// InventoryManager, and this panel just reports what they decided.
+    /// Presentation only. Every rule (slot, class, capacity) lives in EquipmentManager and
+    /// InventoryManager; this page just reports what they decided, and rebuilds from scratch on
+    /// every change so it can never drift out of sync with the data.
     /// </summary>
-    public class InventoryPanel : ModalPanel
+    public class InventoryPanel : HubPage
     {
         [Header("Data")]
         [SerializeField] private InventoryManager inventory;
@@ -28,10 +28,6 @@ namespace RPG.UI
         [SerializeField] private ItemRegistry itemRegistry;
         [SerializeField] private RarityTable rarityTable;
         [SerializeField] private CurrencyWallet wallet;
-
-        [Header("Equipped")]
-        [SerializeField] private RectTransform slotContainer;
-        [SerializeField] private Button slotButtonTemplate;
 
         [Header("Bag")]
         [SerializeField] private RectTransform bagContainer;
@@ -49,15 +45,12 @@ namespace RPG.UI
         private readonly List<GameObject> _spawned = new List<GameObject>();
         private readonly StatBlock _scratch = new StatBlock();
         private readonly StringBuilder _builder = new StringBuilder(256);
-        private string _lastMessage = string.Empty;
+        private string _message = "Tap an item to equip it.";
 
-        protected override void Awake()
+        private void Awake()
         {
-            base.Awake();
-            if (slotButtonTemplate != null) slotButtonTemplate.gameObject.SetActive(false);
             if (bagButtonTemplate != null) bagButtonTemplate.gameObject.SetActive(false);
             if (expandButton != null) expandButton.onClick.AddListener(OnExpandClicked);
-            Hide();
         }
 
         private void OnEnable()
@@ -83,11 +76,6 @@ namespace RPG.UI
         private void OnCapacityChanged(int capacity) => Refresh();
         private void OnEquipmentChanged(EquipmentSlot slot, EquipmentInstance item) => Refresh();
 
-        private void Refresh()
-        {
-            if (IsOpen) BuildContent();
-        }
-
         protected override void BuildContent()
         {
             for (int i = 0; i < _spawned.Count; i++)
@@ -96,62 +84,20 @@ namespace RPG.UI
             }
             _spawned.Clear();
 
-            BuildEquippedSlots();
             BuildBag();
             BuildHeader();
 
-            if (detailsLabel != null) detailsLabel.text = _lastMessage;
+            if (detailsLabel != null) detailsLabel.text = _message;
         }
-
-        // ------------------------------------------------------------------ equipped
-
-        private void BuildEquippedSlots()
-        {
-            if (equipment == null || slotButtonTemplate == null || slotContainer == null) return;
-
-            IReadOnlyList<EquipmentSlot> slots = equipment.SupportedSlots;
-            for (int i = 0; i < slots.Count; i++)
-            {
-                EquipmentSlot slot = slots[i];
-                EquipmentInstance item = equipment.GetEquipped(slot);
-
-                Button button = Instantiate(slotButtonTemplate, slotContainer);
-                button.gameObject.SetActive(true);
-                button.gameObject.name = $"Slot_{slot}";
-                _spawned.Add(button.gameObject);
-
-                Paint(button, item, $"{slot}\n(empty)");
-
-                EquipmentSlot captured = slot;
-                button.onClick.AddListener(() => OnSlotTapped(captured));
-            }
-        }
-
-        private void OnSlotTapped(EquipmentSlot slot)
-        {
-            EquipmentInstance item = equipment.GetEquipped(slot);
-            if (item == null)
-            {
-                _lastMessage = $"{slot}: nothing equipped.";
-                Refresh();
-                return;
-            }
-
-            EquipResult result = equipment.TryUnequip(slot);
-            _lastMessage = result == EquipResult.Success
-                ? $"Unequipped {DisplayName(item)}."
-                : $"Cannot unequip: {Describe(result)}";
-
-            Refresh();
-        }
-
-        // ------------------------------------------------------------------ bag
 
         private void BuildBag()
         {
             if (inventory == null || bagButtonTemplate == null || bagContainer == null) return;
 
             IReadOnlyList<EquipmentInstance> items = inventory.Items;
+
+            // Overflow is drawn rather than hidden: an item above capacity (a reward claimed
+            // into a full bag) must be visible so the player can deal with it.
             int slotsToDraw = Mathf.Max(inventory.Capacity, items.Count);
 
             for (int i = 0; i < slotsToDraw; i++)
@@ -163,7 +109,8 @@ namespace RPG.UI
                 button.gameObject.name = item != null ? $"Bag_{i}" : $"Bag_{i}_Empty";
                 _spawned.Add(button.gameObject);
 
-                Paint(button, item, i >= inventory.Capacity ? "OVER" : "-");
+                ItemTilePainter.Paint(button, item, itemRegistry, rarityTable, emptySlotColor,
+                    i >= inventory.Capacity ? "OVER" : "-");
                 button.interactable = item != null;
 
                 if (item == null) continue;
@@ -175,23 +122,24 @@ namespace RPG.UI
 
         private void OnBagItemTapped(EquipmentInstance item)
         {
+            string name = ItemTilePainter.DisplayName(item, itemRegistry, rarityTable);
+            string stats = ItemTilePainter.DescribeStats(item, itemRegistry, rarityTable, _scratch, _builder);
+
             EquipResult result = equipment != null ? equipment.TryEquip(item) : EquipResult.UnknownItem;
 
-            _lastMessage = result == EquipResult.Success
-                ? $"Equipped {DisplayName(item)}.\n\n{DescribeStats(item)}"
-                : $"Cannot equip {DisplayName(item)}:\n{Describe(result)}\n\n{DescribeStats(item)}";
+            _message = result == EquipResult.Success
+                ? $"Equipped {name}.\n\n{stats}"
+                : $"Cannot equip {name}:\n{ItemTilePainter.Describe(result)}\n\n{stats}";
 
             Refresh();
         }
-
-        // ------------------------------------------------------------------ header and expansion
 
         private void BuildHeader()
         {
             if (headerLabel != null && inventory != null)
             {
-                string gold = wallet != null ? $"   Gold {wallet.Gold}   Gems {wallet.Gems}" : string.Empty;
-                headerLabel.text = $"BAG  {inventory.Count} / {inventory.Capacity}{gold}";
+                string gold = wallet != null ? $"     Gold {wallet.Gold}     Gems {wallet.Gems}" : string.Empty;
+                headerLabel.text = $"{inventory.Count} / {inventory.Capacity}{gold}";
             }
 
             if (expandButton == null || inventory == null) return;
@@ -212,84 +160,11 @@ namespace RPG.UI
         {
             if (inventory == null) return;
 
-            _lastMessage = inventory.TryExpand()
+            _message = inventory.TryExpand()
                 ? $"Bag expanded to {inventory.Capacity} slots."
                 : "Not enough gems.";
 
             Refresh();
         }
-
-        // ------------------------------------------------------------------ helpers
-
-        private void Paint(Button button, EquipmentInstance item, string emptyText)
-        {
-            var image = button.GetComponent<Image>();
-            var label = button.GetComponentInChildren<Text>();
-
-            if (item == null)
-            {
-                if (image != null) image.color = emptySlotColor;
-                if (label != null) label.text = emptyText;
-                return;
-            }
-
-            if (image != null && rarityTable != null)
-            {
-                Color rarityColor = rarityTable.GetColor(item.Rarity);
-                image.color = Color.Lerp(emptySlotColor, rarityColor, 0.45f);
-            }
-
-            if (label != null)
-            {
-                ItemDefinition definition = itemRegistry != null ? itemRegistry.GetDefinition(item) : null;
-                string itemName = definition != null ? definition.DisplayName : item.TemplateId;
-                label.text = $"{itemName}\nLv {item.ItemLevel}  {item.Rarity}";
-            }
-        }
-
-        private string DisplayName(EquipmentInstance item)
-        {
-            ItemDefinition definition = itemRegistry != null ? itemRegistry.GetDefinition(item) : null;
-            return EquipmentStatCalculator.GetDisplayName(item, definition, rarityTable);
-        }
-
-        private string DescribeStats(EquipmentInstance item)
-        {
-            ItemDefinition definition = itemRegistry != null ? itemRegistry.GetDefinition(item) : null;
-            if (definition == null) return "(unknown item)";
-
-            EquipmentStatCalculator.ComputeStats(item, definition, rarityTable, _scratch);
-
-            _builder.Clear();
-            for (int i = 0; i < StatTypeInfo.Count; i++)
-            {
-                var stat = (StatType)i;
-                float value = _scratch[stat];
-                if (value == 0f) continue;
-
-                _builder.Append(StatTypeInfo.DisplayName(stat)).Append(": ")
-                        .Append(value > 0f ? "+" : string.Empty)
-                        .Append(StatTypeInfo.Format(stat, value)).Append('\n');
-            }
-
-            if (definition is WeaponDefinition weapon)
-            {
-                _builder.Append("Range: ").Append(weapon.Range.ToString("0.0"));
-                if (weapon.ArcDegrees > 0f) _builder.Append("   Arc: ").Append(weapon.ArcDegrees.ToString("0"));
-            }
-
-            return _builder.ToString();
-        }
-
-        private static string Describe(EquipResult result) => result switch
-        {
-            EquipResult.WrongClass => "your class cannot use this weapon type.",
-            EquipResult.SlotNotSupported => "that slot is not available yet.",
-            EquipResult.InventoryFull => "the bag is full.",
-            EquipResult.NotInInventory => "item is not in the bag.",
-            EquipResult.NothingEquipped => "nothing equipped there.",
-            EquipResult.UnknownItem => "unknown item.",
-            _ => result.ToString()
-        };
     }
 }

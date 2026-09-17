@@ -89,17 +89,21 @@ namespace RPG.UI
             base.Awake();
             if (itemTileTemplate != null) itemTileTemplate.gameObject.SetActive(false);
             if (continueButton != null) continueButton.onClick.AddListener(OnContinuePressed);
+
+            // Subscribing here rather than in OnEnable is essential, not stylistic: this
+            // component lives ON the panel root, so Hide() below deactivates its own
+            // GameObject. OnEnable would never run while hidden, and a screen that only
+            // listens while already visible can never be the thing that opens itself.
+            if (stageEvents != null)
+            {
+                stageEvents.StageStarted += OnStageStarted;
+                stageEvents.StageCompleted += OnStageCompleted;
+            }
+
             Hide();
         }
 
-        private void OnEnable()
-        {
-            if (stageEvents == null) return;
-            stageEvents.StageStarted += OnStageStarted;
-            stageEvents.StageCompleted += OnStageCompleted;
-        }
-
-        private void OnDisable()
+        private void OnDestroy()
         {
             if (stageEvents == null) return;
             stageEvents.StageStarted -= OnStageStarted;

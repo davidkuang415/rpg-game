@@ -36,14 +36,17 @@ namespace RPG.UI
         {
             base.Awake();
             if (buttonTemplate != null) buttonTemplate.gameObject.SetActive(false);
+
+            // Hidden in Awake, never in Start. Every Awake runs before any Start, so this
+            // cannot close a panel that GameFlowController opens during its own Start - and
+            // unlike the previous IsOpen check, it does not mistake "saved active in the
+            // scene" for "someone deliberately opened this".
+            Hide();
         }
 
         private void Start()
         {
-            // Start order between this and GameFlowController is not guaranteed, so an already
-            // open panel is left alone rather than being closed out from under the flow.
             if (showOnStart) Show();
-            else if (!IsOpen) Hide();
         }
 
         public override void Show()

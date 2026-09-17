@@ -7,22 +7,26 @@ using RPG.Stages;
 namespace RPG.UI
 {
     /// <summary>
-    /// Stage selection screen, built from the StageRegistry at runtime.
+    /// The stage list, built from the StageRegistry at runtime and shown as the first page of
+    /// the hub.
     ///
     /// Locked stages are shown but not clickable, so progression is visible rather than hidden -
     /// the player can always see what comes next. Adding a stage means adding an asset to the
-    /// registry; this screen needs no edits.
+    /// registry; this page needs no edits.
     ///
-    /// Phase 9 replaces the "Stage Complete" headline here with the real reward screen.
+    /// It only announces the choice. Closing the hub and loading the stage is the game flow's
+    /// job, because the page has no business knowing what happens after a stage is picked.
     /// </summary>
-    public class StageSelectPanel : ModalPanel
+    public class StageSelectPanel : HubPage
     {
         [Header("Data")]
         [SerializeField] private StageRegistry registry;
         [SerializeField] private StageProgressState progress;
 
         [Header("Content")]
-        [SerializeField] private Text titleLabel;
+        [Tooltip("Optional sub-heading above the list, e.g. 'STAGE 1 COMPLETE'.")]
+        [SerializeField] private Text headlineLabel;
+
         [SerializeField] private RectTransform buttonContainer;
         [SerializeField] private Button buttonTemplate;
 
@@ -32,47 +36,46 @@ namespace RPG.UI
         [SerializeField] private Color bossColor = new Color(0.32f, 0.18f, 0.22f);
 
         private readonly List<Button> _spawnedButtons = new List<Button>();
-        private string _pendingTitle = "SELECT STAGE";
+        private string _headline = string.Empty;
 
         /// <summary>Raised when the player picks an unlocked stage.</summary>
         public event Action<StageData> StageChosen;
 
-        protected override void Awake()
+        private void Awake()
         {
-            base.Awake();
             if (buttonTemplate != null) buttonTemplate.gameObject.SetActive(false);
-            Hide();
         }
 
-        /// <summary>Opens with a custom headline, e.g. "STAGE 1 COMPLETE".</summary>
-        public void ShowWithTitle(string title)
+        /// <summary>
+        /// Sets the sub-heading shown above the list. Cleared once displayed, so a headline from
+        /// a previous stage never lingers.
+        /// </summary>
+        public void SetHeadline(string headline)
         {
-            _pendingTitle = title;
-            Show();
-        }
-
-        public override void Show()
-        {
-            if (registry == null || progress == null)
-            {
-                Debug.LogError($"{nameof(StageSelectPanel)} on '{name}' is missing its Registry " +
-                               "or Progress reference.", this);
-                return;
-            }
-
-            base.Show();
-            _pendingTitle = "SELECT STAGE";   // Reset, so the next open is not stale.
+            _headline = headline ?? string.Empty;
+            Refresh();
         }
 
         protected override void BuildContent()
         {
-            if (titleLabel != null) titleLabel.text = _pendingTitle;
+            if (headlineLabel != null)
+            {
+                headlineLabel.text = _headline;
+                headlineLabel.gameObject.SetActive(!string.IsNullOrEmpty(_headline));
+            }
 
             for (int i = 0; i < _spawnedButtons.Count; i++)
             {
                 if (_spawnedButtons[i] != null) Destroy(_spawnedButtons[i].gameObject);
             }
             _spawnedButtons.Clear();
+
+            if (registry == null || progress == null)
+            {
+                Debug.LogError($"{nameof(StageSelectPanel)} on '{name}' is missing its Registry " +
+                               "or Progress reference.", this);
+                return;
+            }
 
             if (buttonTemplate == null || buttonContainer == null) return;
 
@@ -116,7 +119,7 @@ namespace RPG.UI
         {
             if (!progress.IsUnlocked(stage.StageNumber)) return;
 
-            Hide();
+            _headline = string.Empty;
             StageChosen?.Invoke(stage);
         }
     }

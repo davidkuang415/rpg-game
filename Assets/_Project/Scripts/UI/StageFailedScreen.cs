@@ -37,15 +37,14 @@ namespace RPG.UI
             if (retryButton != null) retryButton.onClick.AddListener(OnRetry);
             if (leaveButton != null) leaveButton.onClick.AddListener(OnLeave);
 
+            // Awake, not OnEnable: Hide() below deactivates this component's own GameObject,
+            // so OnEnable would never run and the death event would never be heard.
+            if (failureHandler != null) failureHandler.StageFailed += OnStageFailed;
+
             Hide();
         }
 
-        private void OnEnable()
-        {
-            if (failureHandler != null) failureHandler.StageFailed += OnStageFailed;
-        }
-
-        private void OnDisable()
+        private void OnDestroy()
         {
             if (failureHandler != null) failureHandler.StageFailed -= OnStageFailed;
         }

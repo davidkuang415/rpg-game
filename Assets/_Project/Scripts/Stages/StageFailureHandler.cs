@@ -58,8 +58,24 @@ namespace RPG.Stages
 
             if (stageEvents != null) stageEvents.RaiseStageFailed(failedStage);
 
-            if (showFailureScreen) StageFailed?.Invoke(failedStage);
-            else Retry();
+            // If no screen is listening, retry rather than leaving the player dead on the
+            // floor with no way forward. A missing UI should degrade, never soft-lock.
+            bool screenWillHandleIt = showFailureScreen && StageFailed != null;
+
+            if (screenWillHandleIt)
+            {
+                StageFailed.Invoke(failedStage);
+            }
+            else
+            {
+                if (showFailureScreen)
+                {
+                    Debug.LogWarning("[Stage] No failure screen is listening; retrying the stage " +
+                                     "directly.", this);
+                }
+
+                Retry();
+            }
         }
 
         /// <summary>
