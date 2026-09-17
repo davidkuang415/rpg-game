@@ -70,6 +70,14 @@ namespace RPG.Player
                 ? targetVelocity
                 : Vector2.MoveTowards(_currentVelocity, targetVelocity, rate * Time.fixedDeltaTime);
 
+            // The body stays dynamic, so walls and enemies still collide with it, but its
+            // velocity is never allowed to persist between steps. MovePosition authors the
+            // position outright; anything left in the velocity - a shove from an enemy, residue
+            // from the previous move - would otherwise keep pushing the character, because a
+            // top-down body has no gravity and no drag to bleed it off. That is what made the
+            // character drift with no input at all.
+            _rigidbody.linearVelocity = Vector2.zero;
+
             if (_currentVelocity.sqrMagnitude <= 0.0001f) return;
 
             _rigidbody.MovePosition(_rigidbody.position + _currentVelocity * Time.fixedDeltaTime);

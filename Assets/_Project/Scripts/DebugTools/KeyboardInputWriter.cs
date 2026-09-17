@@ -80,9 +80,16 @@ namespace RPG.DebugTools
                     - (kb.sKey.isPressed || kb.downArrowKey.isPressed ? 1f : 0f);
             return new Vector2(x, y);
 #elif ENABLE_LEGACY_INPUT_MANAGER
-            return new Vector2(
-                UnityEngine.Input.GetAxisRaw("Horizontal"),
-                UnityEngine.Input.GetAxisRaw("Vertical"));
+            // Explicit keys, NOT GetAxisRaw("Horizontal"). The legacy Horizontal/Vertical axes
+            // are also bound to gamepad sticks, and GetAxisRaw deliberately bypasses the axis
+            // dead zone - so a controller resting a hair off centre feeds a small constant
+            // value forever and the character creeps across the arena with nothing touched.
+            // This is a KEYBOARD writer; it should only ever read keys.
+            float x = (UnityEngine.Input.GetKey(KeyCode.D) || UnityEngine.Input.GetKey(KeyCode.RightArrow) ? 1f : 0f)
+                    - (UnityEngine.Input.GetKey(KeyCode.A) || UnityEngine.Input.GetKey(KeyCode.LeftArrow) ? 1f : 0f);
+            float y = (UnityEngine.Input.GetKey(KeyCode.W) || UnityEngine.Input.GetKey(KeyCode.UpArrow) ? 1f : 0f)
+                    - (UnityEngine.Input.GetKey(KeyCode.S) || UnityEngine.Input.GetKey(KeyCode.DownArrow) ? 1f : 0f);
+            return new Vector2(x, y);
 #else
             return Vector2.zero;
 #endif

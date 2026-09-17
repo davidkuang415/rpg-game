@@ -1,7 +1,9 @@
 using System.IO;
 using UnityEditor;
+using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using RPG.Core.Combat;
@@ -11,6 +13,7 @@ using RPG.Inventory;
 using RPG.Items;
 using RPG.Player;
 using RPG.Progression;
+using RPG.Save;
 using RPG.Stages;
 using RPG.UI;
 using RPG.UI.HUD;
@@ -37,7 +40,6 @@ namespace RPG.EditorTools
         private const string CoreDataFolder = "Assets/_Project/Data/Core";
         private const string UiDataFolder = "Assets/_Project/Data/UI";
         private const string VfxPrefabFolder = "Assets/_Project/Prefabs/Vfx";
-        private const string PlayerPrefabPath = "Assets/_Project/Prefabs/Player/Player.prefab";
         private const string EnemyPrefabFolder = "Assets/_Project/Prefabs/Enemies";
 
         private const string SquareSpritePath = "Assets/_Project/Art/Placeholder/Square.png";
@@ -82,8 +84,8 @@ namespace RPG.EditorTools
             GameObject numberPrefab = BuildDamageNumberPrefab();
             BuildFeedbackPools(sparkPrefab, numberPrefab, feedback);
 
-            AddFeedbackToPlayerPrefab(feedback, playerBarStyle);
             AddFeedbackToEnemyPrefabs(feedback, enemyBarStyle);
+            AddFeedbackToScenePlayer(player, feedback, playerBarStyle);
             AddFeedbackToLooseSceneCharacters(feedback, enemyBarStyle);
 
             // --- 3. the hub -------------------------------------------------------
@@ -93,16 +95,73 @@ namespace RPG.EditorTools
             RewireGameFlow(systems, hub);
             RewireDebugOverlay(devTools, hub);
             KeepModalScreensOnTop(hud);
+            BuildResetButton(hud, systems.GetComponent<GameFlowController>());
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
+
+            Verify(player);
 
             Selection.activeGameObject = hub.gameObject;
             Debug.Log("<b>[Phase 11]</b> Hub UI and combat feedback installed. Press Play: pick a " +
                       "class, then swipe left from the stage list to reach GEAR and BAG. " +
                       "In a fight, health bars sit under every character and hits throw sparks " +
                       "and damage numbers.");
+        }
+
+        /// <summary>
+        /// Checks the things this tool is supposed to have produced and says so, loudly, when
+        /// one is missing.
+        ///
+        /// The first version of this tool skipped the player's health bar in complete silence,
+        /// because the component it looked for was on the scene object and it was reading the
+        /// prefab. A setup tool that can quietly do nothing is worse than one that fails.
+        /// </summary>
+        private static void Verify(GameObject player)
+        {
+            var playerBar = player.GetComponentInChildren<HealthBarView>(true);
+            if (playerBar == null)
+            {
+                Debug.LogError("[Phase 11] VERIFY FAILED: the Player has no HealthBarView. " +
+                               "Expected a 'HealthBar' child on the scene Player object.", player);
+            }
+
+            if (player.GetComponent<HitFeedbackEmitter>() == null)
+            {
+                Debug.LogError("[Phase 11] VERIFY FAILED: the Player has no HitFeedbackEmitter, " +
+                               "so hits on the player will show no sparks or damage numbers.", player);
+            }
+
+            int enemiesWithBars = 0;
+            int enemyPrefabs = 0;
+
+            if (Directory.Exists(EnemyPrefabFolder))
+            {
+                string[] files = Directory.GetFiles(EnemyPrefabFolder, "*.prefab");
+                enemyPrefabs = files.Length;
+
+                for (int i = 0; i < files.Length; i++)
+                {
+                    var asset = AssetDatabase.LoadAssetAtPath<GameObject>(files[i].Replace('\\', '/'));
+                    if (asset != null && asset.GetComponentInChildren<HealthBarView>(true) != null)
+                    {
+                        enemiesWithBars++;
+                    }
+                }
+            }
+
+            if (enemiesWithBars < enemyPrefabs)
+            {
+                Debug.LogError($"[Phase 11] VERIFY FAILED: only {enemiesWithBars} of {enemyPrefabs} " +
+                               "enemy prefabs have a health bar.");
+            }
+
+            if (playerBar != null && enemiesWithBars == enemyPrefabs)
+            {
+                Debug.Log($"<b>[Phase 11]</b> Verified: player health bar present, " +
+                          $"{enemiesWithBars}/{enemyPrefabs} enemy prefabs have one.");
+            }
         }
 
         private static Scene EnsureTestSceneOpen()
@@ -214,20 +273,29 @@ namespace RPG.EditorTools
 
         // ================================================================== characters
 
-        private static void AddFeedbackToPlayerPrefab(CombatFeedbackChannel channel, HealthBarStyle style)
+        /// <summary>
+        /// The player is handled on the SCENE object, not on Player.prefab.
+        ///
+        /// That prefab was saved back in Phase 1 and still holds only the three components it
+        /// had then; Health, PlayerStats, EquipmentManager and PlayerLevel were all added to the
+        /// scene instance in later phases and were never applied back. Editing the prefab would
+        /// therefore find no Health and silently skip the player - which is exactly what the
+        /// first version of this tool did, leaving the player with no health bar.
+        ///
+        /// The health bar and the emitter are added as prefab-instance overrides, which is where
+        /// the rest of the player's real setup already lives.
+        /// </summary>
+        private static void AddFeedbackToScenePlayer(GameObject player, CombatFeedbackChannel channel,
+            HealthBarStyle style)
         {
-            if (AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath) == null)
+            if (player.GetComponent<Health>() == null)
             {
-                Debug.LogWarning("[Phase 11] No Player prefab found; the scene player was left alone.");
+                Debug.LogError("[Phase 11] The scene Player has no Health component, so it cannot " +
+                               "have a health bar. Run the Phase 4 tool first.", player);
                 return;
             }
 
-            // Edited through the prefab rather than the scene instance: the scene player IS an
-            // instance of this prefab, so doing it here keeps the two from diverging.
-            GameObject contents = PrefabUtility.LoadPrefabContents(PlayerPrefabPath);
-            AddFeedbackTo(contents, channel, style);
-            PrefabUtility.SaveAsPrefabAsset(contents, PlayerPrefabPath);
-            PrefabUtility.UnloadPrefabContents(contents);
+            AddFeedbackTo(player, channel, style);
         }
 
         private static void AddFeedbackToEnemyPrefabs(CombatFeedbackChannel channel, HealthBarStyle style)
@@ -258,7 +326,10 @@ namespace RPG.EditorTools
             for (int i = 0; i < all.Length; i++)
             {
                 GameObject target = all[i].gameObject;
-                if (PrefabUtility.IsPartOfPrefabInstance(target)) continue;
+
+                // Already has a bar: either this tool just gave it one (the player), or it
+                // inherits one from its prefab (every spawned enemy). Either way, leave it.
+                if (target.GetComponentInChildren<HealthBarView>(true) != null) continue;
 
                 AddFeedbackTo(target, channel, style);
             }
@@ -615,6 +686,46 @@ namespace RPG.EditorTools
             }
 
             EditorSetupUtility.SetPrivateField(flow, "hubScreen", hub);
+
+            // Needed so a profile reset can restore the starting bag size from the same config
+            // the game uses, rather than from a hardcoded fallback.
+            var saveManager = systems.GetComponent<SaveManager>();
+            if (saveManager != null)
+            {
+                EditorSetupUtility.SetPrivateField(saveManager, "inventoryConfig",
+                    AssetDatabase.LoadAssetAtPath<InventoryConfig>(
+                        "Assets/_Project/Data/Inventory/InventoryConfig.asset"));
+            }
+        }
+
+        /// <summary>
+        /// A small RESET button pinned to the top-right corner: wipes the profile and drops
+        /// straight back to class select, without stopping and re-entering Play mode.
+        ///
+        /// A playtest convenience, not a game feature - delete this call when the real settings
+        /// menu arrives. It is deliberately the LAST child of the HUD so it floats above every
+        /// panel, including the hub, which is where you are standing when you want it.
+        /// </summary>
+        private static void BuildResetButton(GameObject hud, GameFlowController flow)
+        {
+            Transform existing = EditorSetupUtility.FindChild(hud.transform, "DebugResetButton");
+            if (existing != null) Object.DestroyImmediate(existing.gameObject);
+
+            if (flow == null) return;
+
+            Button button = LabeledButton("DebugResetButton", hud.transform, "RESET", 22,
+                new Color(0.42f, 0.16f, 0.18f, 0.85f), new Vector2(150f, 64f));
+
+            var rect = (RectTransform)button.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(1f, 1f);
+            rect.anchoredPosition = new Vector2(-16f, -16f);
+            rect.SetAsLastSibling();
+
+            // A persistent listener, so the wiring is scene data you can see in the Inspector
+            // rather than something only this tool knows about.
+            UnityEventTools.AddPersistentListener(button.onClick,
+                new UnityAction(flow.RestartFromZero));
         }
 
         private static void RewireDebugOverlay(GameObject devTools, HubScreen hub)

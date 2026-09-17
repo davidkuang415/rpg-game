@@ -150,5 +150,28 @@ namespace RPG.Stages
         {
             if (hubScreen != null) hubScreen.ShowStages();
         }
+
+        /// <summary>
+        /// Playtest tool: wipes the profile and puts the session back on the class select screen,
+        /// with no need to stop and re-enter Play mode.
+        ///
+        /// It lives here rather than on SaveManager because it is a FLOW operation - closing
+        /// whatever is open, clearing the arena and choosing the next screen is this class's job,
+        /// and SaveManager has no business knowing which screens exist.
+        /// </summary>
+        public void RestartFromZero()
+        {
+            // Close everything first, so nothing is left holding a paused time scale or showing
+            // data that is about to be deleted underneath it.
+            if (stageCompleteScreen != null) stageCompleteScreen.Hide();
+            if (stageFailedScreen != null) stageFailedScreen.Hide();
+            if (hubScreen != null) hubScreen.Hide();
+            if (stageManager != null) stageManager.UnloadStage();
+
+            if (saveManager != null) saveManager.ResetProfile();
+
+            if (classSelectionPanel != null) classSelectionPanel.Show();
+            else Debug.LogWarning("[Flow] Profile reset, but no class selection panel is wired up.", this);
+        }
     }
 }

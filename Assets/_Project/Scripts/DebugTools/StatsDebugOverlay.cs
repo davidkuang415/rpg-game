@@ -18,8 +18,11 @@ namespace RPG.DebugTools
     /// Development-only stat readout drawn with IMGUI.
     ///
     /// IMGUI is used deliberately: it needs no prefabs, fonts or canvas wiring, so a debug
-    /// tool can never break the real game UI or accidentally ship as part of it. The actual
-    /// player-facing HUD will be built with uGUI in the polish phase.
+    /// tool can never break the real game UI or accidentally ship as part of it.
+    ///
+    /// Since Phase 11 the player-facing stats live on the hub's GEAR page, so this draws
+    /// NOTHING until you press the toggle key (F1 by default). It is a development console,
+    /// not part of the game's UI, and it must never sit over the arena.
     /// </summary>
     public class StatsDebugOverlay : MonoBehaviour
     {
@@ -40,9 +43,18 @@ namespace RPG.DebugTools
         [SerializeField] private StageRewardCollector rewardCollector;
         [SerializeField] private ItemRegistry itemRegistry;
         [SerializeField] private RarityTable rarityTable;
-        [Tooltip("Off by default: the player-facing stats now live on the hub's gear page, " +
-                 "and this overlay is a development tool that should not sit over the arena.")]
+        [Header("Visibility")]
+        [Tooltip("Off by default: the player-facing stats live on the hub's gear page now, and " +
+                 "this overlay is a development tool that should not sit over the arena.")]
         [SerializeField] private bool startVisible;
+
+        [Tooltip("Shows and hides the overlay. Read through IMGUI events, so it works whichever " +
+                 "input backend the project is set to.")]
+        [SerializeField] private KeyCode toggleKey = KeyCode.F1;
+
+        [Tooltip("Draws an on-screen toggle button. Off by default because it would sit over " +
+                 "the play area; turn it on when testing on a device with no keyboard.")]
+        [SerializeField] private bool showToggleButton;
 
         private bool _visible;
         private GUIStyle _labelStyle;
@@ -53,6 +65,18 @@ namespace RPG.DebugTools
         private void OnGUI()
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // Read through IMGUI rather than the Input class so the key works under both the
+            // legacy Input Manager and the new Input System without a compile-time branch.
+            if (Event.current.type == EventType.KeyDown && Event.current.keyCode == toggleKey)
+            {
+                _visible = !_visible;
+                Event.current.Use();
+            }
+
+            // Nothing at all is drawn while hidden - not even a toggle button. The whole point
+            // of this phase was to get development furniture off the play area.
+            if (!_visible && !showToggleButton) return;
+
             EnsureStyles();
 
             // Scale the overlay up on high-density screens so it stays readable on a phone.
@@ -60,7 +84,8 @@ namespace RPG.DebugTools
             Matrix4x4 previousMatrix = GUI.matrix;
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
 
-            if (GUI.Button(new Rect(10f, 10f, 90f, 30f), _visible ? "Hide Stats" : "Stats"))
+            if (showToggleButton &&
+                GUI.Button(new Rect(10f, 10f, 90f, 30f), _visible ? "Hide Stats" : "Stats"))
             {
                 _visible = !_visible;
             }
@@ -73,7 +98,7 @@ namespace RPG.DebugTools
 
         private void DrawPanel()
         {
-            GUILayout.BeginArea(new Rect(10f, 50f, 260f, 500f), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(10f, showToggleButton ? 50f : 10f, 260f, 500f), GUI.skin.box);
 
             if (playerStats == null)
             {

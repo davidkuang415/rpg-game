@@ -39,6 +39,9 @@ namespace RPG.Save
         [SerializeField] private EquipmentManager equipment;
         [SerializeField] private StageProgressState stageProgress;
 
+        [Tooltip("Only used to restore the starting bag size on a profile reset.")]
+        [SerializeField] private InventoryConfig inventoryConfig;
+
         [Header("Registries")]
         [SerializeField] private ClassRegistry classRegistry;
         [SerializeField] private ItemRegistry itemRegistry;
@@ -95,6 +98,15 @@ namespace RPG.Save
 
         public void Save()
         {
+            // A profile with no class has never really started, so it is not written out. This
+            // is what makes a reset stick: without it, quitting immediately after a wipe would
+            // save the still-loaded state straight back over the file we just deleted.
+            if (playerStats == null || playerStats.CurrentClass == null)
+            {
+                if (logSaves) Debug.Log("[Save] Nothing to save yet: no class chosen.", this);
+                return;
+            }
+
             SaveData data = Capture();
             string json = JsonUtility.ToJson(data, prettyPrint);
 
@@ -302,5 +314,47 @@ namespace RPG.Save
             Storage.Delete();
             if (logSaves) Debug.Log($"[Save] Deleted profile at {Storage.Describe()}", this);
         }
+
+        /// <summary>
+        /// A true fresh start: deletes the file AND returns every live system to its day-one
+        /// state, so the running session really is at zero rather than merely unsaved.
+        ///
+        /// DeleteSave alone is not enough - it removes the file while the class, level, wallet
+        /// and bag are all still loaded in memory, so play simply carries on and the next
+        /// autosave writes them back.
+        ///
+        /// It does not decide which screen to show next; GameFlowController owns the flow.
+        /// </summary>
+        public void ResetProfile()
+        {
+            DeleteSave();
+
+            if (equipment != null)
+            {
+                // Copied first: unequipping mutates the collection this reads from.
+                var slots = new List<EquipmentSlot>(equipment.SupportedSlots);
+                for (int i = 0; i < slots.Count; i++) equipment.SetEquippedDirect(slots[i], null);
+            }
+
+            if (inventory != null)
+            {
+                inventory.ClearAll();
+                inventory.SetCapacity(InitialInventoryCapacity, 0);
+            }
+
+            if (wallet != null) wallet.SetBalances(0, 0);
+            if (playerLevel != null) playerLevel.SetProgress(1, 0f);
+            if (stageProgress != null) stageProgress.SetProgress(1);
+
+            // Last, because clearing the class recalculates stats and should see an already
+            // empty loadout rather than recalculating twice.
+            if (playerStats != null) playerStats.ClearClass();
+
+            if (logSaves) Debug.Log("[Save] Profile reset to a fresh start.", this);
+        }
+
+        /// <summary>Bag size for a brand new profile, read from the same config the game uses.</summary>
+        private int InitialInventoryCapacity =>
+            inventoryConfig != null ? inventoryConfig.InitialCapacity : 10;
     }
 }

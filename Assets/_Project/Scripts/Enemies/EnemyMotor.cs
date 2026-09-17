@@ -65,6 +65,11 @@ namespace RPG.Enemies
                 ? targetVelocity
                 : Vector2.MoveTowards(_currentVelocity, targetVelocity, acceleration * Time.fixedDeltaTime);
 
+            // Same rule as PlayerMotor: MovePosition authors the position, so no velocity may
+            // survive the step. Without this, an enemy shoved by another enemy keeps sliding,
+            // since a top-down body has neither gravity nor drag to bleed the push off.
+            _rigidbody.linearVelocity = Vector2.zero;
+
             if (_currentVelocity.sqrMagnitude <= 0.0001f) return;
 
             _rigidbody.MovePosition(_rigidbody.position + _currentVelocity * Time.fixedDeltaTime);

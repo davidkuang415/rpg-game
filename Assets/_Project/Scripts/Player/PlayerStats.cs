@@ -69,6 +69,21 @@ namespace RPG.Player
             Recalculate();
         }
 
+        /// <summary>
+        /// Drops back to "no class chosen", the state a brand new profile is in.
+        ///
+        /// Separate from SetClass because SetClass treats null as a caller mistake - which it is
+        /// everywhere except here, where clearing the class is the whole point.
+        /// </summary>
+        public void ClearClass()
+        {
+            CurrentClass = null;
+            _baseStats.Clear();
+
+            ClassChanged?.Invoke(null);
+            Recalculate();
+        }
+
         /// <summary>Registers a stat contributor (equipment manager, buff, level curve).</summary>
         public void RegisterSource(IStatModifierSource source)
         {
