@@ -45,6 +45,9 @@ namespace RPG.Enemies
         /// <summary>Raised when a windup starts. Animation and audio hook in here.</summary>
         public event Action<Vector2> AttackTelegraphed;
 
+        /// <summary>Raised the moment the attack actually lands, after the windup.</summary>
+        public event Action<Vector2> AttackExecuted;
+
         protected virtual void Awake() => Stats = GetComponent<EnemyStats>();
 
         /// <summary>
@@ -85,7 +88,11 @@ namespace RPG.Enemies
 
             // Aim is locked in at the START of the windup, so committing to an attack is a real
             // decision the enemy can be punished for - stepping aside actually works.
-            if (isActiveAndEnabled) Execute(direction, targetPosition);
+            if (isActiveAndEnabled)
+            {
+                Execute(direction, targetPosition);
+                AttackExecuted?.Invoke(direction);
+            }
 
             IsAttacking = false;
         }

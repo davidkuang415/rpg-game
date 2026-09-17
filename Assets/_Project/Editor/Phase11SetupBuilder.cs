@@ -573,8 +573,15 @@ namespace RPG.EditorTools
 
             StatRowView statTemplate = BuildStatRowTemplate(statList);
 
-            Text details = TopLabel(page, "Details", "Tap an equipped item to take it off.", 26,
-                TextAnchor.UpperLeft, new Vector2(940f, 220f), -1320f);
+            // Phase 12: the selected slot's actions. UNEQUIP moves it to the bag, UPGRADE
+            // spends gold on it. The economy component is optional - without it GearPage
+            // hides the upgrade button on its own.
+            Button[] actions = ActionRow(page, -1190f,
+                ("UnequipButton", "UNEQUIP", new Color(0.2f, 0.3f, 0.34f)),
+                ("UpgradeButton", "UPGRADE", new Color(0.36f, 0.3f, 0.16f)));
+
+            Text details = TopLabel(page, "Details", "Tap an equipped item to select it.", 26,
+                TextAnchor.UpperLeft, new Vector2(940f, 240f), -1310f);
             details.color = new Color(0.8f, 0.84f, 0.9f);
 
             var gear = page.gameObject.AddComponent<GearPage>();
@@ -584,6 +591,9 @@ namespace RPG.EditorTools
             EditorSetupUtility.SetPrivateField(gear, "playerHealth", player.GetComponent<Health>());
             EditorSetupUtility.SetPrivateField(gear, "equipment", player.GetComponent<EquipmentManager>());
             EditorSetupUtility.SetPrivateField(gear, "wallet", systems.GetComponent<CurrencyWallet>());
+            EditorSetupUtility.SetPrivateField(gear, "economy", systems.GetComponent<ItemEconomy>());
+            EditorSetupUtility.SetPrivateField(gear, "unequipButton", actions[0]);
+            EditorSetupUtility.SetPrivateField(gear, "upgradeButton", actions[1]);
             EditorSetupUtility.SetPrivateField(gear, "itemRegistry",
                 AssetDatabase.LoadAssetAtPath<ItemRegistry>("Assets/_Project/Data/Items/ItemRegistry.asset"));
             EditorSetupUtility.SetPrivateField(gear, "rarityTable",
@@ -650,8 +660,15 @@ namespace RPG.EditorTools
 
             Button tile = TileButton("BagButtonTemplate", grid, 22);
 
-            Text details = TopLabel(page, "Details", "Tap an item to equip it.", 26,
-                TextAnchor.UpperLeft, new Vector2(940f, 280f), -1130f);
+            // Phase 12: what to do with the selected item. Gold has a job now - UPGRADE spends
+            // it, SELL earns it (and gems, for Legendary and up).
+            Button[] actions = ActionRow(page, -1120f,
+                ("EquipButton", "EQUIP", new Color(0.2f, 0.3f, 0.34f)),
+                ("UpgradeButton", "UPGRADE", new Color(0.36f, 0.3f, 0.16f)),
+                ("SellButton", "SELL", new Color(0.4f, 0.18f, 0.2f)));
+
+            Text details = TopLabel(page, "Details", "Tap an item to see what it does.", 26,
+                TextAnchor.UpperLeft, new Vector2(940f, 280f), -1240f);
             details.color = new Color(0.8f, 0.84f, 0.9f);
 
             var bag = page.gameObject.AddComponent<InventoryPanel>();
@@ -659,6 +676,10 @@ namespace RPG.EditorTools
             EditorSetupUtility.SetPrivateField(bag, "inventory", systems.GetComponent<InventoryManager>());
             EditorSetupUtility.SetPrivateField(bag, "equipment", player.GetComponent<EquipmentManager>());
             EditorSetupUtility.SetPrivateField(bag, "wallet", systems.GetComponent<CurrencyWallet>());
+            EditorSetupUtility.SetPrivateField(bag, "economy", systems.GetComponent<ItemEconomy>());
+            EditorSetupUtility.SetPrivateField(bag, "equipButton", actions[0]);
+            EditorSetupUtility.SetPrivateField(bag, "upgradeButton", actions[1]);
+            EditorSetupUtility.SetPrivateField(bag, "sellButton", actions[2]);
             EditorSetupUtility.SetPrivateField(bag, "itemRegistry",
                 AssetDatabase.LoadAssetAtPath<ItemRegistry>("Assets/_Project/Data/Items/ItemRegistry.asset"));
             EditorSetupUtility.SetPrivateField(bag, "rarityTable",
@@ -796,6 +817,30 @@ namespace RPG.EditorTools
             EditorSetupUtility.StretchFull((RectTransform)label.transform);
 
             return button;
+        }
+
+        /// <summary>
+        /// A horizontal row of equally sized action buttons, centred under a page's content.
+        /// Returned in the order given, so callers can wire each one by index.
+        /// </summary>
+        private static Button[] ActionRow(RectTransform page, float y,
+            params (string name, string label, Color color)[] buttons)
+        {
+            RectTransform row = TopRect("ActionRow", page, new Vector2(940f, 100f), y);
+            var layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            layout.spacing = 16f;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = true;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+
+            var result = new Button[buttons.Length];
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                result[i] = LabeledButton(buttons[i].name, row, buttons[i].label, 24,
+                    buttons[i].color, new Vector2(280f, 100f));
+            }
+            return result;
         }
 
         /// <summary>An item tile: a coloured square whose label shrinks to fit a long item name.</summary>

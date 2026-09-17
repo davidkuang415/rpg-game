@@ -34,6 +34,9 @@ namespace RPG.UI
         [SerializeField] private RarityTable rarityTable;
         [SerializeField] private CurrencyWallet wallet;
 
+        [Tooltip("Optional. Without it the upgrade button stays hidden.")]
+        [SerializeField] private ItemEconomy economy;
+
         [Header("Header")]
         [SerializeField] private Text classLabel;
         [SerializeField] private Text levelLabel;
@@ -51,6 +54,10 @@ namespace RPG.UI
         [Header("Info")]
         [SerializeField] private Text detailsLabel;
 
+        [Header("Actions (optional)")]
+        [SerializeField] private Button unequipButton;
+        [SerializeField] private Button upgradeButton;
+
         [Header("Style")]
         [SerializeField] private Color emptySlotColor = new Color(0.16f, 0.17f, 0.2f);
 
@@ -62,22 +69,34 @@ namespace RPG.UI
         private readonly List<GameObject> _spawned = new List<GameObject>();
         private readonly StatBlock _scratch = new StatBlock();
         private readonly StringBuilder _builder = new StringBuilder(256);
-        private string _message = "Tap an equipped item to take it off.";
+        private string _message = "Tap an equipped item to select it.";
+
+        // The slot the action buttons refer to. Null = nothing selected.
+        private EquipmentSlot? _selectedSlot;
+
+        private void Awake()
+        {
+            if (unequipButton != null) unequipButton.onClick.AddListener(OnUnequipClicked);
+            if (upgradeButton != null) upgradeButton.onClick.AddListener(OnUpgradeClicked);
+        }
 
         private void OnEnable()
         {
             if (equipment != null) equipment.EquipmentChanged += OnEquipmentChanged;
             if (playerStats != null) playerStats.StatsChanged += OnStatsChanged;
+            if (wallet != null) wallet.CurrencyChanged += OnCurrencyChanged;
         }
 
         private void OnDisable()
         {
             if (equipment != null) equipment.EquipmentChanged -= OnEquipmentChanged;
             if (playerStats != null) playerStats.StatsChanged -= OnStatsChanged;
+            if (wallet != null) wallet.CurrencyChanged -= OnCurrencyChanged;
         }
 
         private void OnEquipmentChanged(EquipmentSlot slot, EquipmentInstance item) => Refresh();
         private void OnStatsChanged(PlayerStats stats) => Refresh();
+        private void OnCurrencyChanged(CurrencyType currency, int amount, int delta) => Refresh();
 
         protected override void BuildContent()
         {
@@ -87,9 +106,16 @@ namespace RPG.UI
             }
             _spawned.Clear();
 
+            // A selected slot that has since been emptied is no longer a selection.
+            if (_selectedSlot.HasValue && (equipment == null || equipment.GetEquipped(_selectedSlot.Value) == null))
+            {
+                _selectedSlot = null;
+            }
+
             BuildHeader();
             BuildSlots();
             BuildStats();
+            BuildActions();
 
             if (detailsLabel != null) detailsLabel.text = _message;
         }
@@ -143,6 +169,7 @@ namespace RPG.UI
 
                 ItemTilePainter.Paint(button, item, itemRegistry, rarityTable,
                     emptySlotColor, $"{slot}\n(empty)");
+                ItemTilePainter.SetSelected(button, item != null && _selectedSlot == slot);
 
                 EquipmentSlot captured = slot;
                 button.onClick.AddListener(() => OnSlotTapped(captured));
@@ -154,19 +181,103 @@ namespace RPG.UI
             EquipmentInstance item = equipment.GetEquipped(slot);
             if (item == null)
             {
+                _selectedSlot = null;
                 _message = $"{slot}: nothing equipped. Swipe to the bag to find something.";
                 Refresh();
                 return;
             }
 
+            // Second tap on the selected slot takes the item off - the one-tap flow from before.
+            if (_selectedSlot == slot)
+            {
+                Unequip(slot);
+                return;
+            }
+
+            _selectedSlot = slot;
+            _message = $"{ItemTilePainter.DisplayName(item, itemRegistry, rarityTable)}\n\n{DescribeItem(item)}";
+            Refresh();
+        }
+
+        // ------------------------------------------------------------------ actions
+
+        private void BuildActions()
+        {
+            EquipmentInstance selected = _selectedSlot.HasValue && equipment != null
+                ? equipment.GetEquipped(_selectedSlot.Value)
+                : null;
+
+            bool hasSelection = selected != null;
+            bool hasEconomy = economy != null && economy.Config != null;
+
+            if (unequipButton != null)
+            {
+                unequipButton.interactable = hasSelection;
+                SetLabel(unequipButton, "UNEQUIP");
+            }
+
+            if (upgradeButton != null)
+            {
+                upgradeButton.gameObject.SetActive(hasEconomy);
+                if (hasEconomy)
+                {
+                    int cost = hasSelection ? economy.GetUpgradeCost(selected) : -1;
+                    bool maxed = hasSelection && economy.IsMaxUpgrade(selected);
+
+                    upgradeButton.interactable = hasSelection && !maxed &&
+                                                 wallet != null && wallet.CanAfford(CurrencyType.Gold, cost);
+
+                    SetLabel(upgradeButton, !hasSelection ? "UPGRADE"
+                        : maxed ? "UPGRADE\nMAX"
+                        : $"UPGRADE\n{cost} gold");
+                }
+            }
+        }
+
+        private void OnUnequipClicked()
+        {
+            if (_selectedSlot.HasValue) Unequip(_selectedSlot.Value);
+        }
+
+        private void Unequip(EquipmentSlot slot)
+        {
+            EquipmentInstance item = equipment.GetEquipped(slot);
+            if (item == null) return;
+
             string name = ItemTilePainter.DisplayName(item, itemRegistry, rarityTable);
             EquipResult result = equipment.TryUnequip(slot);
 
             _message = result == EquipResult.Success
-                ? $"Unequipped {name}."
+                ? $"Unequipped {name}. It is in the bag now."
                 : $"Cannot unequip: {ItemTilePainter.Describe(result)}";
 
+            if (result == EquipResult.Success) _selectedSlot = null;
             Refresh();
+        }
+
+        private void OnUpgradeClicked()
+        {
+            if (!_selectedSlot.HasValue || economy == null) return;
+
+            EquipmentInstance item = equipment.GetEquipped(_selectedSlot.Value);
+            if (item == null) return;
+
+            string name = ItemTilePainter.DisplayName(item, itemRegistry, rarityTable);
+            int cost = economy.GetUpgradeCost(item);
+
+            UpgradeResult result = economy.TryUpgrade(item);
+
+            _message = result == UpgradeResult.Success
+                ? $"Upgraded to +{item.UpgradeLevel} for {cost} gold.\n\n{DescribeItem(item)}"
+                : $"Cannot upgrade {name}: {ItemEconomy.Describe(result)}\n\n{DescribeItem(item)}";
+
+            Refresh();
+        }
+
+        private static void SetLabel(Button button, string text)
+        {
+            var label = button.GetComponentInChildren<Text>();
+            if (label != null) label.text = text;
         }
 
         // ------------------------------------------------------------------ stats
@@ -211,6 +322,7 @@ namespace RPG.UI
         /// answer "what would this change?" without a second copy of the formatting rules.
         /// </summary>
         public string DescribeItem(EquipmentInstance item) =>
-            ItemTilePainter.DescribeStats(item, itemRegistry, rarityTable, _scratch, _builder);
+            ItemTilePainter.DescribeStats(item, itemRegistry, rarityTable, _scratch, _builder,
+                economy != null ? economy.Config : null);
     }
 }

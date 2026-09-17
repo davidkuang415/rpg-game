@@ -23,8 +23,9 @@ namespace RPG.Items
         /// Writes an item's stats into a block.
         /// </summary>
         /// <param name="upgradeMultiplier">
-        /// Bonus from the item's upgrade level. 1 = +0. Supplied by the upgrade system in
-        /// Phase 11; until then every item is +0 and this stays 1.
+        /// Bonus from the item's upgrade level. 1 = +0. Callers get it from
+        /// ItemEconomyConfig.GetUpgradeMultiplier; it is passed in rather than looked up here
+        /// so this class stays free of asset references.
         /// </param>
         public static void ComputeStats(EquipmentInstance instance, ItemDefinition definition,
             RarityTable rarityTable, StatBlock into, float upgradeMultiplier = 1f)

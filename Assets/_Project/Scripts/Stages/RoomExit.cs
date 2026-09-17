@@ -30,11 +30,17 @@ namespace RPG.Stages
         [Tooltip("Layers that count as 'the player walked through'. Normally just Player.")]
         [SerializeField] private LayerMask playerLayers;
 
+        [Header("Animation")]
+        [Tooltip("Seconds the locked visual takes to dissolve when the door opens. 0 = instant.")]
+        [SerializeField, Min(0f)] private float openDuration = 0.35f;
+
         public bool IsOpen { get; private set; }
         public RoomController RoomToActivate => roomToActivate;
 
         /// <summary>Raised when the player passes through. StageController listens.</summary>
         public event Action<RoomExit> Entered;
+
+        private Coroutine _openRoutine;
 
         private void Reset()
         {
@@ -48,17 +54,88 @@ namespace RPG.Stages
         public void Open()
         {
             IsOpen = true;
+
+            // The barrier drops at once - the room is cleared, the player may leave now. Only
+            // the picture of it lingers for a moment, so the door visibly gives way.
             if (blocker != null) blocker.enabled = false;
-            if (lockedVisual != null) lockedVisual.SetActive(false);
             if (openVisual != null) openVisual.SetActive(true);
+
+            if (lockedVisual == null) return;
+
+            if (_openRoutine != null) StopCoroutine(_openRoutine);
+
+            if (openDuration <= 0f || !isActiveAndEnabled) lockedVisual.SetActive(false);
+            else _openRoutine = StartCoroutine(DissolveLockedVisual());
         }
 
         public void Close()
         {
             IsOpen = false;
+
+            if (_openRoutine != null)
+            {
+                StopCoroutine(_openRoutine);
+                _openRoutine = null;
+            }
+
             if (blocker != null) blocker.enabled = true;
-            if (lockedVisual != null) lockedVisual.SetActive(true);
+            if (lockedVisual != null)
+            {
+                lockedVisual.SetActive(true);
+                RestoreLockedVisual();
+            }
             if (openVisual != null) openVisual.SetActive(false);
+        }
+
+        // The locked visual's starting look, captured the first time it dissolves so that
+        // Close() can put it back exactly.
+        private bool _capturedLockedLook;
+        private Vector3 _lockedScale;
+        private Color _lockedColor;
+
+        private System.Collections.IEnumerator DissolveLockedVisual()
+        {
+            var renderer = lockedVisual.GetComponent<SpriteRenderer>();
+            Transform t = lockedVisual.transform;
+
+            if (!_capturedLockedLook)
+            {
+                _capturedLockedLook = true;
+                _lockedScale = t.localScale;
+                _lockedColor = renderer != null ? renderer.color : Color.white;
+            }
+
+            float elapsed = 0f;
+            while (elapsed < openDuration)
+            {
+                elapsed += Time.deltaTime;
+                float p = Mathf.Clamp01(elapsed / openDuration);
+                float eased = p * p;
+
+                // Shrinks toward the doorway's centre line and fades: the bar slides away.
+                t.localScale = new Vector3(_lockedScale.x, _lockedScale.y * (1f - eased), _lockedScale.z);
+                if (renderer != null)
+                {
+                    Color c = _lockedColor;
+                    c.a = _lockedColor.a * (1f - eased);
+                    renderer.color = c;
+                }
+
+                yield return null;
+            }
+
+            lockedVisual.SetActive(false);
+            RestoreLockedVisual();
+            _openRoutine = null;
+        }
+
+        private void RestoreLockedVisual()
+        {
+            if (!_capturedLockedLook || lockedVisual == null) return;
+
+            lockedVisual.transform.localScale = _lockedScale;
+            var renderer = lockedVisual.GetComponent<SpriteRenderer>();
+            if (renderer != null) renderer.color = _lockedColor;
         }
 
         private void OnTriggerEnter2D(Collider2D other)

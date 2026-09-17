@@ -44,8 +44,28 @@ namespace RPG.UI
             {
                 ItemDefinition definition = registry != null ? registry.GetDefinition(item) : null;
                 string itemName = definition != null ? definition.DisplayName : item.TemplateId;
-                label.text = $"{itemName}\nLv {item.ItemLevel}  {item.Rarity}";
+                string upgrade = item.UpgradeLevel > 0 ? $" +{item.UpgradeLevel}" : string.Empty;
+                label.text = $"{itemName}{upgrade}\nLv {item.ItemLevel}  {item.Rarity}";
             }
+        }
+
+        /// <summary>
+        /// Marks a tile as the one currently selected: a brighter border-like tint and a
+        /// slight scale, so the item the action buttons refer to is never ambiguous.
+        /// </summary>
+        public static void SetSelected(Button button, bool selected)
+        {
+            if (button == null) return;
+
+            var image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                Color c = image.color;
+                c.a = selected ? 1f : 0.92f;
+                image.color = c;
+            }
+
+            button.transform.localScale = selected ? Vector3.one * 1.06f : Vector3.one;
         }
 
         public static string DisplayName(EquipmentInstance item, ItemRegistry registry,
@@ -62,14 +82,21 @@ namespace RPG.UI
         /// bag of sixty items does not allocate sixty of each.
         /// </summary>
         public static string DescribeStats(EquipmentInstance item, ItemRegistry registry,
-            RarityTable rarityTable, StatBlock scratch, StringBuilder builder)
+            RarityTable rarityTable, StatBlock scratch, StringBuilder builder,
+            ItemEconomyConfig economy = null)
         {
             if (item == null) return string.Empty;
 
             ItemDefinition definition = registry != null ? registry.GetDefinition(item) : null;
             if (definition == null) return "(unknown item)";
 
-            EquipmentStatCalculator.ComputeStats(item, definition, rarityTable, scratch);
+            // The multiplier the equipment manager would use, so the bag never promises
+            // numbers that differ from what equipping actually gives.
+            float upgradeMultiplier = economy != null
+                ? economy.GetUpgradeMultiplier(item.UpgradeLevel)
+                : 1f;
+
+            EquipmentStatCalculator.ComputeStats(item, definition, rarityTable, scratch, upgradeMultiplier);
 
             builder.Clear();
             for (int i = 0; i < StatTypeInfo.Count; i++)

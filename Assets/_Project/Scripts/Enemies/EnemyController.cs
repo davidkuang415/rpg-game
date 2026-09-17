@@ -98,17 +98,24 @@ namespace RPG.Enemies
         private IEnumerator DespawnAfterDelay()
         {
             float elapsed = 0f;
-            var renderer = GetComponent<SpriteRenderer>();
-            Color startColor = renderer != null ? renderer.color : Color.white;
+
+            // Every sprite on the corpse fades together: body, outline, shadow. The health bar
+            // hides itself on death, so it is not in this list for long anyway.
+            SpriteRenderer[] renderers = GetComponentsInChildren<SpriteRenderer>();
+            var startColors = new Color[renderers.Length];
+            for (int i = 0; i < renderers.Length; i++) startColors[i] = renderers[i].color;
 
             while (elapsed < despawnDelay)
             {
                 elapsed += Time.deltaTime;
+                float t = despawnDelay > 0f ? elapsed / despawnDelay : 1f;
 
-                if (renderer != null)
+                for (int i = 0; i < renderers.Length; i++)
                 {
-                    float alpha = Mathf.Lerp(startColor.a, 0f, despawnDelay > 0f ? elapsed / despawnDelay : 1f);
-                    renderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
+                    if (renderers[i] == null) continue;
+                    Color c = startColors[i];
+                    c.a = Mathf.Lerp(startColors[i].a, 0f, t);
+                    renderers[i].color = c;
                 }
 
                 yield return null;

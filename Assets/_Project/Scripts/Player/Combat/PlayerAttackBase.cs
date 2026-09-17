@@ -59,6 +59,9 @@ namespace RPG.Player.Combat
 
         public bool CanAttack => isActiveAndEnabled && _cooldown.IsReady;
 
+        /// <summary>The reach this attack currently uses, for visuals that must match it.</summary>
+        public float CurrentRange => AttackRange;
+
         /// <summary>
         /// Reach in world units. Precedence: explicit override, then the equipped weapon, then
         /// the class's unarmed fallback.

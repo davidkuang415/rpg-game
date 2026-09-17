@@ -30,7 +30,7 @@ namespace RPG.Player
             _stats = GetComponent<PlayerStats>();
             _motor = GetComponent<PlayerMotor>();
 
-            if (bodyRenderer == null) bodyRenderer = GetComponent<SpriteRenderer>();
+            if (bodyRenderer == null) bodyRenderer = Core.CharacterBody.FindRenderer(gameObject);
         }
 
         private void OnEnable()

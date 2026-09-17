@@ -37,6 +37,10 @@ namespace RPG.Inventory
         [SerializeField] private ItemRegistry itemRegistry;
         [SerializeField] private RarityTable rarityTable;
 
+        [Tooltip("Supplies the stat multiplier for upgraded items. Optional; without it every " +
+                 "item is treated as +0.")]
+        [SerializeField] private ItemEconomyConfig economyConfig;
+
         [Header("Wiring")]
         [SerializeField] private InventoryManager inventory;
 
@@ -154,6 +158,24 @@ namespace RPG.Inventory
         }
 
         /// <summary>
+        /// An equipped item was changed in place (upgraded). Its slot's cached stats are
+        /// rebuilt and the player recalculated, so the new numbers apply immediately. Items
+        /// that are not equipped are ignored - their stats are computed when they are.
+        /// </summary>
+        public void NotifyItemChanged(EquipmentInstance item)
+        {
+            if (item == null) return;
+
+            foreach (KeyValuePair<EquipmentSlot, EquipmentInstance> pair in _equipped)
+            {
+                if (pair.Value != item) continue;
+
+                OnSlotChanged(pair.Key);
+                return;
+            }
+        }
+
+        /// <summary>
         /// Restores saved loadout without validation side effects like bag moves. The save
         /// system validates separately; anything invalid is pushed to the bag instead.
         /// </summary>
@@ -217,8 +239,12 @@ namespace RPG.Inventory
                 _slotStats[slot] = block;
             }
 
-            // Upgrade multiplier stays 1 until the upgrade system (Phase 11) supplies it.
-            EquipmentStatCalculator.ComputeStats(item, GetDefinition(item), rarityTable, block);
+            float upgradeMultiplier = economyConfig != null
+                ? economyConfig.GetUpgradeMultiplier(item.UpgradeLevel)
+                : 1f;
+
+            EquipmentStatCalculator.ComputeStats(item, GetDefinition(item), rarityTable, block,
+                upgradeMultiplier);
         }
 
         /// <summary>IStatModifierSource: every equipped item's stats, as flat Equipment-layer modifiers.</summary>

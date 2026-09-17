@@ -11,12 +11,14 @@ namespace RPG.Core.Combat
     /// hit react, not your own weapon. Impact sparks and damage numbers are separate and live
     /// in RPG.Vfx; this is only the tint.
     ///
-    /// Note it never touches transform.scale. The SpriteRenderer sits on the same object as the
-    /// collider, so a "punch" scale here would resize the character's hitbox mid-fight.
+    /// It only ever changes colour. Movement - recoil, squash - is CharacterAnimator's job,
+    /// and it works on the "Body" child so the collider is never touched.
     /// </summary>
-    [RequireComponent(typeof(SpriteRenderer))]
     public class HitFlash : MonoBehaviour
     {
+        [Tooltip("The sprite to tint. Left empty, the root's renderer or the 'Body' child is used.")]
+        [SerializeField] private SpriteRenderer bodyRenderer;
+
         [SerializeField] private Color flashColor = Color.white;
         [SerializeField, Min(0.01f)] private float flashDuration = 0.08f;
 
@@ -34,8 +36,16 @@ namespace RPG.Core.Combat
 
         private void Awake()
         {
-            _renderer = GetComponent<SpriteRenderer>();
+            _renderer = bodyRenderer != null ? bodyRenderer : CharacterBody.FindRenderer(gameObject);
             _health = GetComponent<Health>();
+
+            if (_renderer == null)
+            {
+                Debug.LogWarning($"{nameof(HitFlash)} on '{name}' found no SpriteRenderer to flash.", this);
+                enabled = false;
+                return;
+            }
+
             _baseColor = _renderer.color;
         }
 
@@ -59,7 +69,7 @@ namespace RPG.Core.Combat
 
         private void OnDamageTaken(DamageInfo info, DamageResult result)
         {
-            if (result.WasDodged) return;
+            if (result.WasDodged || _renderer == null) return;
 
             // Re-read the base colour in case something else (class tint) changed it.
             if (_routine != null) StopCoroutine(_routine);
@@ -73,10 +83,15 @@ namespace RPG.Core.Combat
 
         private IEnumerator Flash(Color color, float duration)
         {
-            _renderer.color = color;
+            // Alpha is left alone both ways, so a fatal hit's flash cannot snap a fading
+            // corpse back to fully opaque when it ends.
+            _renderer.color = WithAlpha(color, _renderer.color.a);
             yield return new WaitForSeconds(duration);
-            _renderer.color = _baseColor;
+            _renderer.color = WithAlpha(_baseColor, _renderer.color.a);
             _routine = null;
         }
+
+        private static Color WithAlpha(Color color, float alpha) =>
+            new Color(color.r, color.g, color.b, alpha);
     }
 }
