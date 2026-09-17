@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4965bd0054f6e4432bcba28b17caa23a, type: 3}
-  m_Name: Stage03
+  m_Name: Stage09
   m_EditorClassIdentifier: Assembly-CSharp::RPG.Stages.StageData
-  stageNumber: 3
-  displayName: Stage 3
-  stagePrefab: {fileID: 1970917629969991943, guid: ff76065358c604177b956cecf920bcd1, type: 3}
-  enemyLevel: 4
+  stageNumber: 9
+  displayName: Stage 9
+  stagePrefab: {fileID: 1151828361645091071, guid: 8fa33fcf1188343fab44cb97d37bfffa, type: 3}
+  enemyLevel: 10
   forceBossStage: 0
-  lootModifier: 1
-  goldModifier: 1
+  lootModifier: 1.15
+  goldModifier: 1.3

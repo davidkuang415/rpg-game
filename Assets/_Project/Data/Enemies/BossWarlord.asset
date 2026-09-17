@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6abca235ee4a4ce3a847d51d4a0da2c, type: 3}
+  m_Name: BossWarlord
+  m_EditorClassIdentifier: Assembly-CSharp::RPG.Enemies.EnemyData
+  enemyId: boss_warlord
+  displayName: Warlord
+  archetype: 2
+  maxHealth: 700
+  attack: 20
+  defense: 30
+  moveSpeed: 2.1
+  attackSpeed: 0.55
+  attackRange: 2.2
+  detectionRange: 18
+  memorySeconds: 6
+  attackWindupSeconds: 0.55
+  lootTable: {fileID: 11400000, guid: 5558f3ec25a5645b6b4f377ffe5ffbff, type: 2}
+  xpReward: 300
+  goldReward: 150
+  enemyPrefab: {fileID: 6076671597679416039, guid: 165f89eecf8024ad783cc0e01c236dbb, type: 3}
+  bodyTint: {r: 0.95, g: 0.32, b: 0.5, a: 1}
+  bodyScale: 1.9
