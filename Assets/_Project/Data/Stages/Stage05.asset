@@ -17,5 +17,5 @@ MonoBehaviour:
   stagePrefab: {fileID: 1475357284217700594, guid: e97570ef5845b41c1aac734bb8177df2, type: 3}
   enemyLevel: 6
   forceBossStage: 0
-  lootModifier: 1.3199999
-  goldModifier: 1.6
+  lootModifier: 1.05
+  goldModifier: 1.1
