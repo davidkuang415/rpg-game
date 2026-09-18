@@ -484,9 +484,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RPG.Core.Combat.HitFlash
   bodyRenderer: {fileID: 2953291306946486821}
-  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashColor: {r: 2.6, g: 2.6, b: 2.6, a: 1}
   flashDuration: 0.08
-  criticalFlashColor: {r: 1, g: 0.72, b: 0.35, a: 1}
+  criticalFlashColor: {r: 2.6, g: 1.9, b: 1, a: 1}
   criticalDurationMultiplier: 2
 --- !u!114 &2795093445781129134
 MonoBehaviour:
@@ -702,8 +702,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 1
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: d6c76cfd9de6e44909483990ec31aa87, type: 3}
-  m_Color: {r: 0.55, g: 0.45, b: 0.75, a: 1}
+  m_Sprite: {fileID: 21300000, guid: a8055e9d817fd4209aa5255954ca6abb, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0

@@ -25,5 +25,6 @@ MonoBehaviour:
   critDamage: 1.5
   baseAttackRange: 1.6
   baseAttackArcDegrees: 120
-  bodyTint: {r: 0.35, g: 0.75, b: 1, a: 1}
+  bodyTint: {r: 1, g: 1, b: 1, a: 1}
   icon: {fileID: 0}
+  bodySprite: {fileID: 21300000, guid: f61feed5af6bf48ab9baab1340abe40c, type: 3}

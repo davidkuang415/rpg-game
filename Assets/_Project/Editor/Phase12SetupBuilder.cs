@@ -47,7 +47,6 @@ namespace RPG.EditorTools
 
         private const int TargetFrameRate = 144;
 
-        private static readonly Color OutlineColor = new Color(0.04f, 0.04f, 0.06f, 0.95f);
         private static readonly Color ShadowColor = new Color(0f, 0f, 0f, 0.42f);
 
         [MenuItem("RPG/Phase 12/Build Polish, Economy And Stages", priority = 240)]
@@ -239,8 +238,14 @@ namespace RPG.EditorTools
 
             int bodyOrder = body.sortingOrder;
 
-            Transform outline = EnsureChildSprite(root.transform, "Outline", circle, OutlineColor,
-                bodyOrder - 1, Vector3.zero, Vector3.one * 1.14f);
+            // Phase 14 gave every character real art with its own outline baked in, so the
+            // circle drawn behind it (Phase 12's stand-in outline, back when every body was a
+            // flat-tinted circle) now just reads as a mismatched backdrop. Removed outright
+            // rather than left invisible, so it stops existing as far as the hierarchy and
+            // CharacterAnimator are concerned.
+            Transform existingOutline = root.transform.Find("Outline");
+            if (existingOutline != null) Object.DestroyImmediate(existingOutline.gameObject);
+
             Transform shadow = EnsureChildSprite(root.transform, "Shadow", shadowSprite, ShadowColor,
                 bodyOrder - 2, new Vector3(0f, -0.4f, 0f), new Vector3(1.15f, 0.5f, 1f));
 
@@ -256,7 +261,7 @@ namespace RPG.EditorTools
 
             var animator = EditorSetupUtility.EnsureComponent<CharacterAnimator>(root);
             EditorSetupUtility.SetPrivateField(animator, "body", bodyTransform);
-            EditorSetupUtility.SetPrivateField(animator, "outline", outline);
+            EditorSetupUtility.SetPrivateField(animator, "outline", null);
             EditorSetupUtility.SetPrivateField(animator, "shadow", shadow);
         }
 

@@ -28,5 +28,6 @@ MonoBehaviour:
   xpReward: 10
   goldReward: 5
   enemyPrefab: {fileID: 4668994292909427834, guid: 1e85a3351dcad48059a453347451cf69, type: 3}
-  bodyTint: {r: 0.9, g: 0.35, b: 0.35, a: 1}
+  bodyTint: {r: 1, g: 1, b: 1, a: 1}
   bodyScale: 0.85
+  bodySprite: {fileID: 21300000, guid: 15f651e911daa47799cb9930cace443d, type: 3}

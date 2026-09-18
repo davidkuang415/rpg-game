@@ -848,9 +848,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RPG.Core.Combat.HitFlash
   bodyRenderer: {fileID: 1675163487788409125}
-  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashColor: {r: 2.6, g: 2.6, b: 2.6, a: 1}
   flashDuration: 0.08
-  criticalFlashColor: {r: 1, g: 0.72, b: 0.35, a: 1}
+  criticalFlashColor: {r: 2.6, g: 1.9, b: 1, a: 1}
   criticalDurationMultiplier: 2
 --- !u!114 &8374779473714631835
 MonoBehaviour:
