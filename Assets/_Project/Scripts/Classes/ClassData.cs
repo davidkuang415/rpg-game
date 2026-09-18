@@ -56,6 +56,10 @@ namespace RPG.Classes
         [SerializeField] private Color bodyTint = new Color(0.35f, 0.75f, 1f);
         [SerializeField] private Sprite icon;
 
+        [Tooltip("Optional. A real body sprite for this class. Without it the shared placeholder " +
+                 "circle is used, tinted with Body Tint above.")]
+        [SerializeField] private Sprite bodySprite;
+
         public string ClassId => classId;
         public string DisplayName => displayName;
         public string Description => description;
@@ -64,6 +68,7 @@ namespace RPG.Classes
         public float BaseAttackArcDegrees => baseAttackArcDegrees;
         public Color BodyTint => bodyTint;
         public Sprite Icon => icon;
+        public Sprite BodySprite => bodySprite;
 
         /// <summary>Writes this class's level-1 stats into an existing block (no allocation).</summary>
         public void WriteBaseStats(StatBlock target)

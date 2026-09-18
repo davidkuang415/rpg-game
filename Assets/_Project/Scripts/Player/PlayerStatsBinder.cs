@@ -62,6 +62,10 @@ namespace RPG.Player
         {
             if (!applyClassTint || classData == null || bodyRenderer == null) return;
             bodyRenderer.color = classData.BodyTint;
+
+            // Optional: a real sprite replaces the shared placeholder circle. Left unset, the
+            // circle keeps rendering, just tinted per class as before.
+            if (classData.BodySprite != null) bodyRenderer.sprite = classData.BodySprite;
         }
     }
 }

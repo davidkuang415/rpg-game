@@ -484,6 +484,8 @@ namespace RPG.EditorTools
             mainCamera.backgroundColor = new Color(0.05f, 0.055f, 0.08f);
         }
 
+        private const string KenneyButtonPanelPath = "Assets/_Project/Art/Kenney/UI/ButtonPanel.png";
+
         /// <summary>
         /// Rounded corners on every button, a press animation, readable text, and a vignette.
         ///
@@ -494,14 +496,35 @@ namespace RPG.EditorTools
         /// </summary>
         private static void RestyleHud(GameObject hud)
         {
-            Sprite rounded = PlaceholderArt.Load(PlaceholderArt.RoundedRectPath);
+            Sprite placeholderRounded = PlaceholderArt.Load(PlaceholderArt.RoundedRectPath);
+            Sprite rounded = AssetDatabase.LoadAssetAtPath<Sprite>(KenneyButtonPanelPath) ?? placeholderRounded;
 
             Button[] buttons = hud.GetComponentsInChildren<Button>(true);
             for (int i = 0; i < buttons.Length; i++)
             {
                 var image = buttons[i].GetComponent<Image>();
-                if (image != null && (image.sprite == null || image.sprite == rounded))
+
+                // Bare (never styled) or already carrying either the old procedural mask or this
+                // sprite from an earlier run - so re-running always leaves a button on `rounded`,
+                // whichever asset that currently resolves to, instead of getting stuck on the
+                // first one a button happened to receive.
+                bool unstyled = image != null &&
+                    (image.sprite == null || image.sprite == rounded || image.sprite == placeholderRounded);
+
+                if (unstyled)
                 {
+                    // Lighten toward white only the first time a button leaves the flat
+                    // placeholder mask for real art - not on every re-run, and not on a button
+                    // that was already showing the Kenney art last time this ran.
+                    if (image.sprite == null || image.sprite == placeholderRounded)
+                    {
+                        // The old RoundedRect was a plain white mask, so a button's role colour
+                        // (e.g. the dark red on SELL) WAS the button. The Kenney art is real,
+                        // already-lit art, and multiplying it by a dark role colour just crushes
+                        // it back to a flat blob - so it is washed toward white, not replaced.
+                        image.color = Color.Lerp(image.color, Color.white, 0.6f);
+                    }
+
                     image.sprite = rounded;
                     image.type = Image.Type.Sliced;
                     image.pixelsPerUnitMultiplier = 1f;

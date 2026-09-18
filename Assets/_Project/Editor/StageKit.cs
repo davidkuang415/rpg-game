@@ -24,10 +24,15 @@ namespace RPG.EditorTools
     {
         public const string StagePrefabFolder = "Assets/_Project/Prefabs/Stages";
 
+        // Real art, not an alpha mask, so it needs a near-white multiply rather than the dark
+        // tint the procedural checker pattern used - a full-color stone tile crushed to 0.16
+        // reads as flat black.
+        public const string KenneyFloorTilePath = "Assets/_Project/Art/Kenney/Environment/FloorTile_Stone.png";
+
         // Look of the world. Floors are tiled so movement has something to read against,
         // walls carry a dark edge and a light top so they read as solid blocks rather than
         // flat rectangles.
-        private static readonly Color FloorColor = new Color(0.16f, 0.17f, 0.21f);
+        private static readonly Color FloorColor = new Color(0.88f, 0.88f, 0.9f);
         private static readonly Color FloorRimColor = new Color(0.10f, 0.11f, 0.14f);
         private static readonly Color WallColor = new Color(0.40f, 0.43f, 0.50f);
         private static readonly Color WallEdgeColor = new Color(0.07f, 0.08f, 0.10f);
@@ -44,7 +49,8 @@ namespace RPG.EditorTools
         public static void Init()
         {
             _square = PlaceholderArt.Load(PlaceholderArt.SquarePath);
-            _floorTile = PlaceholderArt.Load(PlaceholderArt.FloorTilePath);
+            _floorTile = AssetDatabase.LoadAssetAtPath<Sprite>(KenneyFloorTilePath)
+                         ?? PlaceholderArt.Load(PlaceholderArt.FloorTilePath);
             _wallLayer = LayerMask.NameToLayer(GameLayers.Wall);
         }
 

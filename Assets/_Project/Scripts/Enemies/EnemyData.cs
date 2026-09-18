@@ -61,6 +61,10 @@ namespace RPG.Enemies
         [SerializeField] private Color bodyTint = new Color(0.9f, 0.35f, 0.35f);
         [SerializeField, Min(0.1f)] private float bodyScale = 0.9f;
 
+        [Tooltip("Optional. A real body sprite for this enemy type. Without it the shared " +
+                 "placeholder circle is used, tinted with Body Tint above.")]
+        [SerializeField] private Sprite bodySprite;
+
         public string EnemyId => enemyId;
         public string DisplayName => displayName;
         public EnemyArchetype Archetype => archetype;
@@ -83,5 +87,6 @@ namespace RPG.Enemies
         public GameObject EnemyPrefab => enemyPrefab;
         public Color BodyTint => bodyTint;
         public float BodyScale => bodyScale;
+        public Sprite BodySprite => bodySprite;
     }
 }
