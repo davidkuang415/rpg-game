@@ -19,6 +19,10 @@ namespace RPG.Enemies
         [SerializeField] private string displayName = "Grunt";
         [SerializeField] private EnemyArchetype archetype = EnemyArchetype.Melee;
 
+        [Tooltip("A boss gets the big health bar at the top of the screen and its own intro " +
+                 "banner. Behaviour still comes from the prefab's components.")]
+        [SerializeField] private bool isBoss;
+
         [Header("Base Stats (level 1)")]
         [SerializeField, Min(1f)] private float maxHealth = 40f;
         [SerializeField, Min(0f)] private float attack = 8f;
@@ -68,6 +72,7 @@ namespace RPG.Enemies
         public string EnemyId => enemyId;
         public string DisplayName => displayName;
         public EnemyArchetype Archetype => archetype;
+        public bool IsBoss => isBoss;
 
         public float MaxHealth => maxHealth;
         public float Attack => attack;

@@ -30,6 +30,10 @@ namespace RPG.Loot
         [Tooltip("Used when an enemy has no loot table of its own. Optional.")]
         [SerializeField] private LootTableData fallbackLootTable;
 
+        [Tooltip("Rolled instead of the enemy's own table when it died as an elite. Optional; " +
+                 "without it an elite drops from its normal table.")]
+        [SerializeField] private LootTableData eliteLootTable;
+
         [SerializeField] private bool logDrops = true;
 
         private readonly List<EquipmentInstance> _rollBuffer = new List<EquipmentInstance>(4);
@@ -86,6 +90,11 @@ namespace RPG.Loot
             LootTableData table = info.Data != null && info.Data.LootTable != null
                 ? info.Data.LootTable
                 : fallbackLootTable;
+
+            // A boss keeps its own table - it is already the best one - but any lesser enemy
+            // promoted to elite rolls from the elite table.
+            bool isBoss = info.Data != null && info.Data.IsBoss;
+            if (info.IsElite && !isBoss && eliteLootTable != null) table = eliteLootTable;
 
             if (table == null) return;
 

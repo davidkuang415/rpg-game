@@ -36,6 +36,10 @@ namespace RPG.Player
                  "movement direction while the weapon tracks the target.")]
         [SerializeField] private bool faceAttackTarget = true;
 
+        [Header("Dashing")]
+        [Tooltip("Optional. The dodge roll. Found on this object if left empty.")]
+        [SerializeField] private PlayerDash dash;
+
         private PlayerMotor _motor;
         private PlayerFacing _facing;
         private IPlayerAttack _attack;
@@ -52,6 +56,7 @@ namespace RPG.Player
             // Archer later means swapping that component, not editing this script.
             _attack = GetComponent<IPlayerAttack>();
             if (targeting == null) targeting = GetComponent<PlayerTargeting>();
+            if (dash == null) dash = GetComponent<PlayerDash>();
 
             if (inputChannel == null)
             {
@@ -70,7 +75,22 @@ namespace RPG.Player
             _motor.SetMoveInput(move);
             _facing.SetFromInput(move);   // Neutral input keeps the previous facing.
 
+            UpdateDash(move);
+
+            // A dash is a commitment: no swinging mid-roll. The attack press stays buffered, so
+            // a tap during the roll comes out the moment it ends.
+            if (dash != null && dash.IsDashing) return;
+
             UpdateAttack();
+        }
+
+        private void UpdateDash(Vector2 move)
+        {
+            if (dash == null || !inputChannel.HasBufferedDash) return;
+            if (!dash.TryDash(move)) return;
+
+            inputChannel.ConsumeDashPress();
+            _facing.SetFromInput(move);
         }
 
         /// <summary>

@@ -202,7 +202,7 @@ namespace RPG.EditorTools
         }
 
         public static SpawnPoint Spawn(RoomController room, string name, Vector2 position,
-            EnemyData enemyData, int levelOffset = 0)
+            EnemyData enemyData, int levelOffset = 0, bool elite = false)
         {
             var point = new GameObject(name);
             point.transform.SetParent(room.transform, false);
@@ -211,6 +211,7 @@ namespace RPG.EditorTools
             var spawnPoint = point.AddComponent<SpawnPoint>();
             EditorSetupUtility.SetPrivateField(spawnPoint, "enemyData", enemyData);
             EditorSetupUtility.SetPrivateField(spawnPoint, "levelOffset", levelOffset);
+            EditorSetupUtility.SetPrivateField(spawnPoint, "spawnAsElite", elite);
             return spawnPoint;
         }
 

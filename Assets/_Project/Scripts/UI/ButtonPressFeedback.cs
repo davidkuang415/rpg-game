@@ -57,10 +57,18 @@ namespace RPG.UI
             _rect.localScale = _restScale * _current;
         }
 
+        /// <summary>
+        /// Raised on every press of every button carrying this component. The sound layer
+        /// listens; a static event because buttons are created and destroyed constantly (item
+        /// tiles, stage rows) and a per-instance subscription would never keep up.
+        /// </summary>
+        public static event System.Action Pressed;
+
         public void OnPointerDown(PointerEventData eventData)
         {
             if (_button != null && !_button.interactable) return;
 
+            Pressed?.Invoke();
             _pressed = true;
             _restScale = _rect.localScale / _current;   // In case something rescaled us while at rest.
             _target = pressedScale;

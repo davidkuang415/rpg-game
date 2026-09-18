@@ -23,6 +23,13 @@ namespace RPG.Core.Combat
         private ICombatStatProvider _statProvider;
         private float _currentHealth;
         private float _lastKnownMaxHealth;
+        private int _invulnerabilityHolds;
+
+        /// <summary>
+        /// While true every hit is reported as dodged. Counted rather than a bool, so two
+        /// sources (a dash, a revive grace period) can overlap without one releasing the other's.
+        /// </summary>
+        public bool IsInvulnerable => _invulnerabilityHolds > 0;
 
         public float CurrentHealth => _currentHealth;
         public float MaxHealth => _statProvider?.GetStat(StatType.MaxHealth) ?? fallbackMaxHealth;
@@ -72,16 +79,26 @@ namespace RPG.Core.Combat
             HealthChanged?.Invoke(_currentHealth, max);
         }
 
+        /// <summary>Adds one hold on invulnerability. Pair every call with ReleaseInvulnerability.</summary>
+        public void HoldInvulnerability() => _invulnerabilityHolds++;
+
+        public void ReleaseInvulnerability() => _invulnerabilityHolds = Mathf.Max(0, _invulnerabilityHolds - 1);
+
         public DamageResult TakeDamage(in DamageInfo info)
         {
             if (!IsAlive) return new DamageResult(0f, false, false);
 
-            if (!info.IgnoresDodge && DamageCalculator.RollDodge(_statProvider))
+            // Reported as a dodge on purpose: the MISS number and the absence of a recoil are
+            // exactly the feedback a dodge roll through an attack should give.
+            bool dodged = IsInvulnerable ||
+                          (!info.IgnoresDodge && DamageCalculator.RollDodge(_statProvider));
+
+            if (dodged)
             {
-                var dodged = new DamageResult(0f, true, false);
-                DamageTaken?.Invoke(info, dodged);
+                var miss = new DamageResult(0f, true, false);
+                DamageTaken?.Invoke(info, miss);
                 if (logDamage) Debug.Log($"[Health] {name} dodged.", this);
-                return dodged;
+                return miss;
             }
 
             float defense = _statProvider?.GetStat(StatType.Defense) ?? 0f;

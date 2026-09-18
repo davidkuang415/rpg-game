@@ -38,6 +38,9 @@ namespace RPG.Stages
         public StageData CurrentStage { get; private set; }
         public bool IsStageActive => _currentInstance != null;
 
+        /// <summary>The running stage's controller, or null between stages. The combat HUD reads rooms from it.</summary>
+        public StageController CurrentController => _currentController;
+
         private void Awake()
         {
             if (stageRoot == null) stageRoot = transform;
@@ -123,6 +126,11 @@ namespace RPG.Stages
 
                 Destroy(_currentInstance);
                 _currentInstance = null;
+
+                StageData unloaded = CurrentStage;
+                CurrentStage = null;
+                if (stageEvents != null) stageEvents.RaiseStageUnloaded(unloaded);
+                return;
             }
 
             CurrentStage = null;

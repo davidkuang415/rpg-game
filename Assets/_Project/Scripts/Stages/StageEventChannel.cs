@@ -18,7 +18,15 @@ namespace RPG.Stages
         public event Action<StageData> StageCompleted;
         public event Action<StageData> StageFailed;
 
+        /// <summary>
+        /// The stage instance is gone, for whatever reason - completed, abandoned from the
+        /// pause menu, or replaced by a restart. Anything that shows itself only during a
+        /// fight hides on this rather than trying to enumerate every way a fight can end.
+        /// </summary>
+        public event Action<StageData> StageUnloaded;
+
         public void RaiseStageStarted(StageData stage) => StageStarted?.Invoke(stage);
+        public void RaiseStageUnloaded(StageData stage) => StageUnloaded?.Invoke(stage);
         public void RaiseRoomCleared(RoomController room) => RoomCleared?.Invoke(room);
         public void RaiseStageCompleted(StageData stage) => StageCompleted?.Invoke(stage);
         public void RaiseStageFailed(StageData stage) => StageFailed?.Invoke(stage);
@@ -29,6 +37,7 @@ namespace RPG.Stages
             RoomCleared = null;
             StageCompleted = null;
             StageFailed = null;
+            StageUnloaded = null;
         }
     }
 }

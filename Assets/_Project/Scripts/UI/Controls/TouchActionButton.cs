@@ -20,8 +20,9 @@ namespace RPG.UI.Controls
     {
         public enum ActionType
         {
-            Attack
-            // Ability1, Ability2, Dash ... added as those systems arrive.
+            Attack,
+            Dash
+            // Ability1, Ability2 ... added as those systems arrive.
         }
 
         [SerializeField] private PlayerInputChannel inputChannel;
@@ -58,6 +59,10 @@ namespace RPG.UI.Controls
             {
                 case ActionType.Attack:
                     inputChannel.PressAttack();
+                    break;
+
+                case ActionType.Dash:
+                    inputChannel.PressDash();
                     break;
             }
         }

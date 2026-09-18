@@ -31,6 +31,34 @@ namespace RPG.Enemies
 
         [SerializeField, Min(1)] private int maxShapingLevel = 100;
 
+        [Header("Elites (applied on top of level scaling)")]
+        [Tooltip("Extra max HP as a fraction. 0.8 = +80%.")]
+        [SerializeField, Range(0f, 5f)] private float eliteHealthBonus = 0.8f;
+
+        [Tooltip("Extra attack as a fraction.")]
+        [SerializeField, Range(0f, 5f)] private float eliteAttackBonus = 0.35f;
+
+        [Tooltip("Extra defense as a fraction.")]
+        [SerializeField, Range(0f, 5f)] private float eliteDefenseBonus = 0.25f;
+
+        [Tooltip("Extra attack speed as a fraction. Kept small: faster swings shrink the " +
+                 "reaction window the telegraph exists to give.")]
+        [SerializeField, Range(0f, 2f)] private float eliteAttackSpeedBonus = 0.15f;
+
+        [Tooltip("XP and gold multiplier for an elite kill. Higher than its stat bonus, so an " +
+                 "elite is worth going for rather than something to walk around.")]
+        [SerializeField, Min(1f)] private float eliteRewardMultiplier = 2.5f;
+
+        [Tooltip("How much bigger an elite is drawn (and collides) than its normal version.")]
+        [SerializeField, Range(1f, 2f)] private float eliteScale = 1.22f;
+
+        public float EliteHealthBonus => eliteHealthBonus;
+        public float EliteAttackBonus => eliteAttackBonus;
+        public float EliteDefenseBonus => eliteDefenseBonus;
+        public float EliteAttackSpeedBonus => eliteAttackSpeedBonus;
+        public float EliteRewardMultiplier => eliteRewardMultiplier;
+        public float EliteScale => eliteScale;
+
         public float ScaleHealth(float baseValue, int level) => Scale(baseValue, level, healthGrowth);
         public float ScaleAttack(float baseValue, int level) => Scale(baseValue, level, attackGrowth);
         public float ScaleDefense(float baseValue, int level) => Scale(baseValue, level, defenseGrowth);

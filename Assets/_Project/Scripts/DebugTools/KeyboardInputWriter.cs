@@ -58,6 +58,7 @@ namespace RPG.DebugTools
 
             if (ReadAttackPressed()) inputChannel.PressAttack();
             if (ReadAttackReleased()) inputChannel.ReleaseAttack();
+            if (ReadDashPressed()) inputChannel.PressDash();
         }
 
         private void OnDisable()
@@ -103,6 +104,22 @@ namespace RPG.DebugTools
             return space || click;
 #elif ENABLE_LEGACY_INPUT_MANAGER
             return UnityEngine.Input.GetKeyDown(KeyCode.Space) || UnityEngine.Input.GetMouseButtonDown(0);
+#else
+            return false;
+#endif
+        }
+
+        /// <summary>Shift or right mouse, mirroring the on-screen dash button.</summary>
+        private static bool ReadDashPressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            Keyboard kb = Keyboard.current;
+            bool shift = kb != null && (kb.leftShiftKey.wasPressedThisFrame || kb.rightShiftKey.wasPressedThisFrame);
+            bool right = Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
+            return shift || right;
+#elif ENABLE_LEGACY_INPUT_MANAGER
+            return UnityEngine.Input.GetKeyDown(KeyCode.LeftShift) || UnityEngine.Input.GetKeyDown(KeyCode.RightShift)
+                || UnityEngine.Input.GetMouseButtonDown(1);
 #else
             return false;
 #endif

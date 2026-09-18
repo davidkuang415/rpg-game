@@ -66,6 +66,12 @@ namespace RPG.Vfx
                  "telegraph is a motion as well as a tint.")]
         [SerializeField, Range(0f, 1f)] private float windupPullback = 0.6f;
 
+        [Header("Dash")]
+        [Tooltip("Stretch along the dash direction: x grows by this, y shrinks by it.")]
+        [SerializeField, Range(0f, 0.6f)] private float dashStretch = 0.26f;
+
+        [SerializeField, Min(0.01f)] private float dashStretchDuration = 0.22f;
+
         [Header("Spawn and death")]
         [SerializeField, Min(0f)] private float spawnPopDuration = 0.22f;
         [SerializeField, Min(0f)] private float deathCollapseDuration = 0.4f;
@@ -75,6 +81,7 @@ namespace RPG.Vfx
         private EnemyMotor _enemyMotor;
         private Health _health;
         private PlayerAttackBase[] _playerAttacks;
+        private PlayerDash _playerDash;
         private EnemyAttackBase _enemyAttack;
         private EnemyStats _enemyStats;
 
@@ -111,6 +118,7 @@ namespace RPG.Vfx
             _enemyMotor = GetComponent<EnemyMotor>();
             _health = GetComponent<Health>();
             _playerAttacks = GetComponents<PlayerAttackBase>();
+            _playerDash = GetComponent<PlayerDash>();
             _enemyAttack = GetComponent<EnemyAttackBase>();
             _enemyStats = GetComponent<EnemyStats>();
         }
@@ -127,6 +135,8 @@ namespace RPG.Vfx
             {
                 for (int i = 0; i < _playerAttacks.Length; i++) _playerAttacks[i].Attacked += OnAttacked;
             }
+
+            if (_playerDash != null) _playerDash.Dashed += OnDashed;
 
             if (_enemyAttack != null)
             {
@@ -157,6 +167,8 @@ namespace RPG.Vfx
             {
                 for (int i = 0; i < _playerAttacks.Length; i++) _playerAttacks[i].Attacked -= OnAttacked;
             }
+
+            if (_playerDash != null) _playerDash.Dashed -= OnDashed;
 
             if (_enemyAttack != null)
             {
@@ -285,6 +297,20 @@ namespace RPG.Vfx
 
             Vector2 toward = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.down;
             AddImpulse(toward * lungeDistance, new Vector2(0.08f, -0.06f), lungeDuration);
+        }
+
+        private void OnDashed(Vector2 direction)
+        {
+            if (_dead) return;
+
+            // The body is scaled in its own x/y, not along the dash, so a vertical dash reads as
+            // a tall stretch and a horizontal one as a long stretch - both read as "fast".
+            bool horizontal = Mathf.Abs(direction.x) >= Mathf.Abs(direction.y);
+            Vector2 stretch = horizontal
+                ? new Vector2(dashStretch, -dashStretch * 0.6f)
+                : new Vector2(-dashStretch * 0.6f, dashStretch);
+
+            AddImpulse(direction.normalized * 0.08f, stretch, dashStretchDuration);
         }
 
         private void OnTelegraphed(Vector2 direction)

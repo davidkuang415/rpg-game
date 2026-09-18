@@ -1,4 +1,6 @@
+using System;
 using UnityEngine;
+using RPG.Core.Combat;
 
 namespace RPG.Vfx
 {
@@ -18,6 +20,15 @@ namespace RPG.Vfx
     {
         private HitSparkPool _sparks;
         private DamageNumberPool _numbers;
+
+        /// <summary>
+        /// (info, result, victim) for every hit any HitFeedbackEmitter reports, dodged or not.
+        /// The sound layer listens here; it is the one place every hit in the game passes through.
+        /// </summary>
+        public event Action<DamageInfo, DamageResult, Transform> DamageShown;
+
+        public void NotifyDamage(in DamageInfo info, in DamageResult result, Transform victim)
+            => DamageShown?.Invoke(info, result, victim);
 
         public void RegisterSparks(HitSparkPool pool) => _sparks = pool;
         public void RegisterNumbers(DamageNumberPool pool) => _numbers = pool;
@@ -56,12 +67,14 @@ namespace RPG.Vfx
         {
             _sparks = null;
             _numbers = null;
+            DamageShown = null;
         }
 
         private void OnDisable()
         {
             _sparks = null;
             _numbers = null;
+            DamageShown = null;
         }
     }
 }

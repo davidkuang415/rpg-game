@@ -65,11 +65,28 @@ namespace RPG.Stages
         public bool IsFinalRoom => isFinalRoom;
         public int AliveEnemyCount => _aliveEnemies.Count;
 
+        /// <summary>1-based index of the wave currently spawning or being fought. 0 before the first.</summary>
+        public int CurrentWave { get; private set; }
+
+        /// <summary>Waves that must be cleared. Ambient (not required) waves are not counted.</summary>
+        public int RequiredWaveCount
+        {
+            get
+            {
+                int count = 0;
+                for (int i = 0; i < waves.Count; i++) if (waves[i].RequiredToClear) count++;
+                return count;
+            }
+        }
+
         /// <summary>Raised once, when every required enemy in the room is dead.</summary>
         public event Action<RoomController> Cleared;
 
-        /// <summary>Raised whenever the number of living enemies changes. For a room HUD later.</summary>
+        /// <summary>Raised whenever the number of living enemies changes. The combat HUD listens.</summary>
         public event Action<int> AliveCountChanged;
+
+        /// <summary>(room, waveNumber, requiredWaveCount) as each required wave begins to spawn.</summary>
+        public event Action<RoomController, int, int> WaveStarted;
 
         /// <summary>Starts the room. Called by StageController, not by the room itself.</summary>
         public void Activate(int stageEnemyLevel)
@@ -78,6 +95,7 @@ namespace RPG.Stages
 
             State = RoomState.Active;
             _stageEnemyLevel = stageEnemyLevel;
+            CurrentWave = 0;
 
             if (_enemyParent == null)
             {
@@ -99,6 +117,12 @@ namespace RPG.Stages
                 if (wave.DelayBeforeSpawn > 0f) yield return new WaitForSeconds(wave.DelayBeforeSpawn);
 
                 if (logProgress) Debug.Log($"[Room {name}] Spawning wave '{wave.Name}'.", this);
+
+                if (wave.RequiredToClear)
+                {
+                    CurrentWave++;
+                    WaveStarted?.Invoke(this, CurrentWave, RequiredWaveCount);
+                }
 
                 for (int s = 0; s < wave.SpawnPoints.Count; s++)
                 {

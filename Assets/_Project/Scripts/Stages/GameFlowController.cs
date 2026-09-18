@@ -31,6 +31,9 @@ namespace RPG.Stages
         [Tooltip("Optional. Shown on death; its Leave button returns to the hub.")]
         [SerializeField] private StageFailedScreen stageFailedScreen;
 
+        [Tooltip("Optional. Opened from the combat HUD; its Leave button returns to the hub.")]
+        [SerializeField] private PauseMenuScreen pauseMenu;
+
         [Header("Systems")]
         [SerializeField] private StageManager stageManager;
         [SerializeField] private StageEventChannel stageEvents;
@@ -56,6 +59,7 @@ namespace RPG.Stages
             if (stageEvents != null) stageEvents.StageCompleted += OnStageCompleted;
             if (stageCompleteScreen != null) stageCompleteScreen.Continued += OnCompleteScreenContinued;
             if (stageFailedScreen != null) stageFailedScreen.Abandoned += OnRunAbandoned;
+            if (pauseMenu != null) pauseMenu.Left += OnRunAbandoned;
         }
 
         private void OnDisable()
@@ -65,6 +69,7 @@ namespace RPG.Stages
             if (stageEvents != null) stageEvents.StageCompleted -= OnStageCompleted;
             if (stageCompleteScreen != null) stageCompleteScreen.Continued -= OnCompleteScreenContinued;
             if (stageFailedScreen != null) stageFailedScreen.Abandoned -= OnRunAbandoned;
+            if (pauseMenu != null) pauseMenu.Left -= OnRunAbandoned;
         }
 
         /// <summary>
@@ -165,6 +170,7 @@ namespace RPG.Stages
             // data that is about to be deleted underneath it.
             if (stageCompleteScreen != null) stageCompleteScreen.Hide();
             if (stageFailedScreen != null) stageFailedScreen.Hide();
+            if (pauseMenu != null) pauseMenu.Hide();
             if (hubScreen != null) hubScreen.Hide();
             if (stageManager != null) stageManager.UnloadStage();
 

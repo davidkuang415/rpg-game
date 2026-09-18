@@ -52,6 +52,8 @@ namespace RPG.Vfx
             Vector2 center = transform.position;
             Vector2 point = ResolveHitPoint(info, center);
 
+            feedback.NotifyDamage(info, result, transform);
+
             if (result.WasDodged)
             {
                 if (showDodges && showDamageNumbers)

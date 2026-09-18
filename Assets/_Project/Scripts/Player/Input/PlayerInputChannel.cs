@@ -23,9 +23,13 @@ namespace RPG.Player.Input
                  "Prevents a press being swallowed when the player taps slightly too early.")]
         [SerializeField, Min(0f)] private float attackPressBufferSeconds = 0.2f;
 
+        [Tooltip("How long a dash press stays queued while the dash is still on cooldown.")]
+        [SerializeField, Min(0f)] private float dashPressBufferSeconds = 0.15f;
+
         private Vector2 _move;
         private bool _attackHeld;
         private float _attackPressTime = float.NegativeInfinity;
+        private float _dashPressTime = float.NegativeInfinity;
 
         /// <summary>Movement input, magnitude 0..1. Direction only - speed comes from stats.</summary>
         public Vector2 Move => _move;
@@ -47,6 +51,9 @@ namespace RPG.Player.Input
         }
 
         public void ReleaseAttack() => _attackHeld = false;
+
+        /// <summary>A dash is a tap, never a hold: there is no "dash held" state to release.</summary>
+        public void PressDash() => _dashPressTime = Time.time;
 
         // ---- Called by the player ----
 
@@ -70,12 +77,24 @@ namespace RPG.Player.Input
             return true;
         }
 
+        /// <summary>True while a dash press is inside its buffer window. Does not clear it.</summary>
+        public bool HasBufferedDash => Time.time - _dashPressTime <= dashPressBufferSeconds;
+
+        /// <summary>Returns true once per dash press inside the buffer window and clears it.</summary>
+        public bool ConsumeDashPress()
+        {
+            if (Time.time - _dashPressTime > dashPressBufferSeconds) return false;
+            _dashPressTime = float.NegativeInfinity;
+            return true;
+        }
+
         /// <summary>Clears all input. Called on scene changes, death, or when a writer is disabled.</summary>
         public void ResetInput()
         {
             _move = Vector2.zero;
             _attackHeld = false;
             _attackPressTime = float.NegativeInfinity;
+            _dashPressTime = float.NegativeInfinity;
         }
 
         private void OnEnable() => ResetInput();

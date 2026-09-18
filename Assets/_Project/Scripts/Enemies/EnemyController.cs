@@ -24,6 +24,10 @@ namespace RPG.Enemies
                  "somewhere they could not see.")]
         [SerializeField] private bool alertOnDamage = true;
 
+        [Header("Elite Presentation")]
+        [Tooltip("Colour the Outline child takes while this enemy is an elite.")]
+        [SerializeField] private Color eliteOutlineColor = new Color(1f, 0.78f, 0.2f);
+
         private Health _health;
         private PooledEnemy _pooled;
         private SpriteRenderer[] _renderers;
@@ -34,6 +38,9 @@ namespace RPG.Enemies
         private EnemyMotor _motor;
         private EnemyAttackBase _attack;
         private bool _deathHandled;
+        private Vector3 _authoredScale;
+        private SpriteRenderer _outline;
+        private Color _authoredOutlineColor;
 
         private void Awake()
         {
@@ -50,6 +57,12 @@ namespace RPG.Enemies
             _renderers = GetComponentsInChildren<SpriteRenderer>(true);
             _rendererColors = new Color[_renderers.Length];
             for (int i = 0; i < _renderers.Length; i++) _rendererColors[i] = _renderers[i].color;
+
+            _authoredScale = transform.localScale;
+
+            Transform outline = transform.Find("Outline");
+            _outline = outline != null ? outline.GetComponent<SpriteRenderer>() : null;
+            if (_outline != null) _authoredOutlineColor = _outline.color;
         }
 
         private void OnEnable()
@@ -105,8 +118,28 @@ namespace RPG.Enemies
             }
 
             RestoreRendererColors();
+            ApplyElitePresentation();
 
             if (_health != null) _health.ResetToFull();
+
+            // Announced last, once the enemy is fully configured and at full health, so a
+            // listener that binds a health bar to it reads the right numbers straight away.
+            if (eventChannel != null && _stats != null) eventChannel.RaiseEnemySpawned(_stats);
+        }
+
+        /// <summary>
+        /// Bigger, with a gold outline. Applied on every spawn because a pooled object can be
+        /// an elite this time and a regular the next; the authored values are restored when
+        /// it is not one.
+        /// </summary>
+        private void ApplyElitePresentation()
+        {
+            bool elite = _stats != null && _stats.IsElite;
+
+            float scale = elite && _stats.DifficultyCurve != null ? _stats.DifficultyCurve.EliteScale : 1f;
+            transform.localScale = _authoredScale * scale;
+
+            if (_outline != null) _outline.color = elite ? eliteOutlineColor : _authoredOutlineColor;
         }
 
         /// <summary>Undoes the death fade, which leaves every sprite at zero alpha.</summary>

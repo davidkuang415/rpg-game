@@ -167,7 +167,7 @@ namespace RPG.EditorTools
                     StageKit.Spawn(room, "W2_Grunt_1", new Vector2(-6f, 0f), e.Grunt, 1),
                     StageKit.Spawn(room, "W2_Grunt_2", new Vector2(6f, 0f), e.Grunt, 1)),
                 StageKit.Wave("Wave 3", 1.5f,
-                    StageKit.Spawn(room, "W3_Brute", new Vector2(0f, 12f), e.Brute),
+                    StageKit.Spawn(room, "W3_Brute", new Vector2(0f, 12f), e.Brute, elite: true),
                     StageKit.Spawn(room, "W3_Grunt_1", new Vector2(-16f, -14f), e.Grunt),
                     StageKit.Spawn(room, "W3_Grunt_2", new Vector2(16f, -14f), e.Grunt)));
 
@@ -228,7 +228,7 @@ namespace RPG.EditorTools
                     StageKit.Spawn(c, "C_Slinger_2", new Vector2(23f, 4f), e.Slinger, 1)),
                 StageKit.Wave("Wave 2", 1.5f,
                     StageKit.Spawn(c, "C_Brute_1", new Vector2(8f, 8f), e.Brute),
-                    StageKit.Spawn(c, "C_Brute_2", new Vector2(20f, 14f), e.Brute, 1)));
+                    StageKit.Spawn(c, "C_Brute_2", new Vector2(20f, 14f), e.Brute, 1, elite: true)));
 
             StageKit.Door(a, b, "Door_A_to_B", new Vector2(0f, -13.5f), new Vector2(3f, 4f));
             StageKit.Door(b, c, "Door_B_to_C", new Vector2(13.5f, 0f), new Vector2(4f, 3f));
@@ -282,7 +282,7 @@ namespace RPG.EditorTools
                     StageKit.Spawn(c, "C_Slinger_2", new Vector2(6f, 30f), e.Slinger, 1),
                     StageKit.Spawn(c, "C_Grunt_1", new Vector2(8f, 17f), e.Grunt, 1)),
                 StageKit.Wave("Wave 2", 1.2f,
-                    StageKit.Spawn(c, "C_Brute", new Vector2(0f, 32f), e.Brute),
+                    StageKit.Spawn(c, "C_Brute", new Vector2(0f, 32f), e.Brute, elite: true),
                     StageKit.Spawn(c, "C_Grunt_2", new Vector2(-9f, 16f), e.Grunt, 1)));
 
             StageKit.Door(a, b, "Door_A_to_B", new Vector2(0f, -12f), new Vector2(4f, 3f));
@@ -328,7 +328,7 @@ namespace RPG.EditorTools
                     StageKit.Spawn(room, "W2_Grunt_2", new Vector2(-14f, 6f), e.Grunt, 1)),
                 StageKit.Wave("Wave 3", 1.2f,
                     StageKit.Spawn(room, "W3_Brute_1", new Vector2(-20f, 0f), e.Brute),
-                    StageKit.Spawn(room, "W3_Brute_2", new Vector2(20f, 0f), e.Brute),
+                    StageKit.Spawn(room, "W3_Brute_2", new Vector2(20f, 0f), e.Brute, elite: true),
                     StageKit.Spawn(room, "W3_Grunt_1", new Vector2(0f, 20f), e.Grunt, 2),
                     StageKit.Spawn(room, "W3_Grunt_2", new Vector2(0f, -20f), e.Grunt, 2),
                     StageKit.Spawn(room, "W3_Slinger", new Vector2(20f, 20f), e.Slinger, 1)));
@@ -363,7 +363,7 @@ namespace RPG.EditorTools
                     StageKit.Spawn(a, "A_Grunt_1", new Vector2(-16f, -24f), e.Grunt),
                     StageKit.Spawn(a, "A_Slinger_1", new Vector2(14f, -15f), e.Slinger),
                     StageKit.Spawn(a, "A_Grunt_2", new Vector2(0f, -15f), e.Grunt, 1),
-                    StageKit.Spawn(a, "A_Slinger_2", new Vector2(-14f, -5f), e.Slinger, 1),
+                    StageKit.Spawn(a, "A_Slinger_2", new Vector2(-14f, -5f), e.Slinger, 1, elite: true),
                     StageKit.Spawn(a, "A_Brute", new Vector2(10f, -5f), e.Brute)));
 
             RoomController b = StageKit.Room(s, "Room_B", isFinal: true);
@@ -375,7 +375,7 @@ namespace RPG.EditorTools
                 StageKit.Wave("Wave 2", 1f,
                     StageKit.Spawn(b, "B_Brute_1", new Vector2(14f, 15f), e.Brute),
                     StageKit.Spawn(b, "B_Slinger_2", new Vector2(14f, 25f), e.Slinger, 1),
-                    StageKit.Spawn(b, "B_Brute_2", new Vector2(-14f, 25f), e.Brute, 1)));
+                    StageKit.Spawn(b, "B_Brute_2", new Vector2(-14f, 25f), e.Brute, 1, elite: true)));
 
             StageKit.Door(a, b, "Door_A_to_B", new Vector2(-12f, 0f), new Vector2(4f, 3f));
 
@@ -436,7 +436,7 @@ namespace RPG.EditorTools
                     StageKit.Spawn(c, "C_Slinger", new Vector2(24f, 24f), e.Slinger, 1)),
                 StageKit.Wave("Wave 2", 1f,
                     StageKit.Spawn(c, "C_Brute_1", new Vector2(15f, 22f), e.Brute),
-                    StageKit.Spawn(c, "C_Brute_2", new Vector2(22f, 15f), e.Brute, 1)));
+                    StageKit.Spawn(c, "C_Brute_2", new Vector2(22f, 15f), e.Brute, 1, elite: true)));
 
             RoomController d = StageKit.Room(s, "Room_D", isFinal: true);
             StageKit.Waves(d,
@@ -446,7 +446,7 @@ namespace RPG.EditorTools
                     StageKit.Spawn(d, "D_Grunt_1", new Vector2(-8f, 8f), e.Grunt, 2),
                     StageKit.Spawn(d, "D_Grunt_2", new Vector2(-8f, 24f), e.Grunt, 2)),
                 StageKit.Wave("Wave 2", 1.5f,
-                    StageKit.Spawn(d, "D_Brute_1", new Vector2(-24f, 24f), e.Brute, 1),
+                    StageKit.Spawn(d, "D_Brute_1", new Vector2(-24f, 24f), e.Brute, 1, elite: true),
                     StageKit.Spawn(d, "D_Brute_2", new Vector2(-15f, 15f), e.Brute, 1),
                     StageKit.Spawn(d, "D_Grunt_3", new Vector2(-24f, 5f), e.Grunt, 2)));
 
@@ -483,8 +483,8 @@ namespace RPG.EditorTools
                 StageKit.Wave("Escort", 0f,
                     StageKit.Spawn(room, "E_Grunt_1", new Vector2(-16f, 0f), e.Grunt),
                     StageKit.Spawn(room, "E_Grunt_2", new Vector2(16f, 0f), e.Grunt),
-                    StageKit.Spawn(room, "E_Grunt_3", new Vector2(-6f, 14f), e.Grunt, 1),
-                    StageKit.Spawn(room, "E_Grunt_4", new Vector2(6f, 14f), e.Grunt, 1),
+                    StageKit.Spawn(room, "E_Grunt_3", new Vector2(-6f, 14f), e.Grunt, 1, elite: true),
+                    StageKit.Spawn(room, "E_Grunt_4", new Vector2(6f, 14f), e.Grunt, 1, elite: true),
                     StageKit.Spawn(room, "E_Slinger_1", new Vector2(-20f, 20f), e.Slinger),
                     StageKit.Spawn(room, "E_Slinger_2", new Vector2(20f, 20f), e.Slinger)),
                 StageKit.Wave("Warlord", 1.5f,

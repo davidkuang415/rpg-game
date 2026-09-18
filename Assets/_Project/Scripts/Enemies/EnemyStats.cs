@@ -26,7 +26,8 @@ namespace RPG.Enemies
         [Tooltip("Enemy Level - power and reward scaling. Deliberately NOT the stage number.")]
         [SerializeField, Min(1)] private int level = 1;
 
-        [Tooltip("Elites get modifiers registered as a stat source. No modifiers exist yet.")]
+        [Tooltip("Elites get the Difficulty Curve's elite bonuses registered as a stat source, " +
+                 "and pay out its reward multiplier on death.")]
         [SerializeField] private bool isElite;
 
         private readonly StatBlock _baseStats = new StatBlock();
@@ -35,23 +36,32 @@ namespace RPG.Enemies
         private readonly List<StatModifier> _modifierBuffer = new List<StatModifier>(8);
 
         public EnemyData Data => data;
+        public DifficultyCurveData DifficultyCurve => difficultyCurve;
         public int Level => level;
         public bool IsElite => isElite;
         public StatBlock Current => _current;
 
-        /// <summary>XP granted on death, scaled for this enemy's level.</summary>
-        public float XpReward => difficultyCurve != null
+        /// <summary>XP granted on death, scaled for this enemy's level and elite status.</summary>
+        public float XpReward => (difficultyCurve != null
             ? difficultyCurve.ScaleXp(data != null ? data.XpReward : 0f, level)
-            : (data != null ? data.XpReward : 0f);
+            : (data != null ? data.XpReward : 0f)) * RewardMultiplier;
 
-        /// <summary>Gold granted on death, scaled for this enemy's level.</summary>
-        public int GoldReward => Mathf.RoundToInt(difficultyCurve != null
+        /// <summary>Gold granted on death, scaled for this enemy's level and elite status.</summary>
+        public int GoldReward => Mathf.RoundToInt((difficultyCurve != null
             ? difficultyCurve.ScaleGold(data != null ? data.GoldReward : 0f, level)
-            : (data != null ? data.GoldReward : 0f));
+            : (data != null ? data.GoldReward : 0f)) * RewardMultiplier);
+
+        private float RewardMultiplier =>
+            isElite && difficultyCurve != null ? difficultyCurve.EliteRewardMultiplier : 1f;
 
         private bool _built;
+        private EliteModifierSource _eliteSource;
 
-        private void Awake() => Rebuild();
+        private void Awake()
+        {
+            SyncEliteSource();
+            Rebuild();
+        }
 
         /// <summary>
         /// Sets up a spawned enemy. Spawn points call this so one prefab can serve every
@@ -62,7 +72,26 @@ namespace RPG.Enemies
             data = enemyData;
             level = Mathf.Max(1, enemyLevel);
             isElite = elite;
+            SyncEliteSource();
             Rebuild();
+        }
+
+        /// <summary>
+        /// Keeps exactly one elite source registered while elite, none otherwise. A pooled
+        /// enemy can be an elite on one spawn and a regular on the next, so this is re-run on
+        /// every Configure rather than once in Awake.
+        /// </summary>
+        private void SyncEliteSource()
+        {
+            if (isElite)
+            {
+                if (_eliteSource == null) _eliteSource = new EliteModifierSource(difficultyCurve);
+                if (!_sources.Contains(_eliteSource)) _sources.Add(_eliteSource);
+            }
+            else if (_eliteSource != null)
+            {
+                _sources.Remove(_eliteSource);
+            }
         }
 
         public void RegisterSource(IStatModifierSource source)

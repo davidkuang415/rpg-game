@@ -29,6 +29,11 @@ namespace RPG.Player
         private Vector2 _moveInput;
         private Vector2 _currentVelocity;
 
+        // A dash overrides normal movement for a short burst. Kept here rather than in
+        // PlayerDash so there is still exactly one thing that writes the rigidbody's position.
+        private Vector2 _dashVelocity;
+        private float _dashTimeLeft;
+
         /// <summary>Current movement speed in units/second. Phase 2 stats will drive this.</summary>
         public float MoveSpeed { get; set; }
 
@@ -36,6 +41,9 @@ namespace RPG.Player
         public Vector2 CurrentVelocity => _currentVelocity;
 
         public bool IsMoving => _currentVelocity.sqrMagnitude > 0.0001f;
+
+        /// <summary>True while a dash burst is overriding normal movement.</summary>
+        public bool IsDashing => _dashTimeLeft > 0f;
 
         private void Awake()
         {
@@ -59,10 +67,37 @@ namespace RPG.Player
         {
             _moveInput = Vector2.zero;
             _currentVelocity = Vector2.zero;
+            _dashTimeLeft = 0f;
+        }
+
+        /// <summary>
+        /// Covers <paramref name="distance"/> in <paramref name="duration"/> seconds along a
+        /// direction, ignoring move input for that long. Walls still stop it - the burst goes
+        /// through MovePosition like everything else, so it cannot tunnel.
+        /// </summary>
+        public void Dash(Vector2 direction, float distance, float duration)
+        {
+            if (duration <= 0f || direction.sqrMagnitude <= 0.0001f) return;
+
+            _dashVelocity = direction.normalized * (distance / duration);
+            _dashTimeLeft = duration;
         }
 
         private void FixedUpdate()
         {
+            if (_dashTimeLeft > 0f)
+            {
+                _dashTimeLeft -= Time.fixedDeltaTime;
+
+                // Leaving the dash at dash speed would make the character skid; it hands over
+                // to the normal decel curve from the walk speed instead.
+                _currentVelocity = _dashVelocity.normalized * Mathf.Min(_dashVelocity.magnitude, MoveSpeed);
+
+                _rigidbody.linearVelocity = Vector2.zero;
+                _rigidbody.MovePosition(_rigidbody.position + _dashVelocity * Time.fixedDeltaTime);
+                return;
+            }
+
             Vector2 targetVelocity = _moveInput * MoveSpeed;
             float rate = _moveInput.sqrMagnitude > 0.0001f ? acceleration : deceleration;
 

@@ -42,9 +42,20 @@ namespace RPG.Enemies
     {
         public event Action<EnemyDeathInfo> EnemyDied;
 
+        /// <summary>
+        /// Raised once per spawn, after the enemy has been configured for its level. The boss
+        /// health bar and the sound layer listen here; nothing in the enemy references them.
+        /// </summary>
+        public event Action<EnemyStats> EnemySpawned;
+
         public void RaiseEnemyDied(in EnemyDeathInfo info) => EnemyDied?.Invoke(info);
+        public void RaiseEnemySpawned(EnemyStats enemy) => EnemySpawned?.Invoke(enemy);
 
         // Editor play sessions reuse the loaded asset, so stale subscribers are dropped here.
-        private void OnDisable() => EnemyDied = null;
+        private void OnDisable()
+        {
+            EnemyDied = null;
+            EnemySpawned = null;
+        }
     }
 }

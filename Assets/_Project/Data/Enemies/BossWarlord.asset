@@ -15,6 +15,7 @@ MonoBehaviour:
   enemyId: boss_warlord
   displayName: Warlord
   archetype: 2
+  isBoss: 1
   maxHealth: 700
   attack: 20
   defense: 30
