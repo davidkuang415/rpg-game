@@ -114,6 +114,13 @@ namespace RPG.Stages
 
             if (_currentInstance != null)
             {
+                // Deactivated before it is destroyed, because Destroy is deferred to the end of
+                // the frame. Without this the outgoing stage's walls, enemies and running wave
+                // coroutines are still live for the rest of the frame - and the next stage is
+                // loaded and the player repositioned inside that same frame, so for one frame the
+                // player stands in the new arena while the old one's colliders are still there.
+                _currentInstance.SetActive(false);
+
                 Destroy(_currentInstance);
                 _currentInstance = null;
             }

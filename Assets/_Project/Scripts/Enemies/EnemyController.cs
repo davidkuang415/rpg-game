@@ -25,6 +25,9 @@ namespace RPG.Enemies
         [SerializeField] private bool alertOnDamage = true;
 
         private Health _health;
+        private PooledEnemy _pooled;
+        private SpriteRenderer[] _renderers;
+        private Color[] _rendererColors;
         private EnemyStats _stats;
         private EnemyPerception _perception;
         private EnemyBrain _brain;
@@ -40,6 +43,13 @@ namespace RPG.Enemies
             _brain = GetComponent<EnemyBrain>();
             _motor = GetComponent<EnemyMotor>();
             _attack = GetComponent<EnemyAttackBase>();
+            _pooled = GetComponent<PooledEnemy>();
+
+            // Captured before anything fades them, so a reused enemy can be restored to the
+            // colours it was authored with rather than to whatever the death fade left behind.
+            _renderers = GetComponentsInChildren<SpriteRenderer>(true);
+            _rendererColors = new Color[_renderers.Length];
+            for (int i = 0; i < _renderers.Length; i++) _rendererColors[i] = _renderers[i].color;
         }
 
         private void OnEnable()
@@ -58,6 +68,57 @@ namespace RPG.Enemies
         {
             if (!alertOnDamage || result.WasDodged || _perception == null) return;
             _perception.ForceAlert();
+        }
+
+        /// <summary>
+        /// Puts a reused enemy back into a fightable state.
+        ///
+        /// Called by the spawn point AFTER stats have been configured, not from OnEnable, so the
+        /// health reset sees the level this enemy is being spawned at rather than the one the
+        /// previous occupant died with.
+        ///
+        /// Everything ShutDownBehaviour switched off is switched back on here. Anything missed
+        /// would come back as an enemy that cannot move, cannot be hit, or is invisible - so the
+        /// two methods are deliberately kept next to each other.
+        /// </summary>
+        public void ResetForReuse()
+        {
+            StopAllCoroutines();
+            _deathHandled = false;
+
+            if (_brain != null) _brain.enabled = true;
+            if (_perception != null)
+            {
+                _perception.enabled = true;
+                _perception.ResetMemory();
+            }
+
+            if (_motor != null)
+            {
+                _motor.enabled = true;
+                _motor.Stop();
+            }
+
+            foreach (Collider2D collider in GetComponentsInChildren<Collider2D>(true))
+            {
+                collider.enabled = true;
+            }
+
+            RestoreRendererColors();
+
+            if (_health != null) _health.ResetToFull();
+        }
+
+        /// <summary>Undoes the death fade, which leaves every sprite at zero alpha.</summary>
+        private void RestoreRendererColors()
+        {
+            if (_renderers == null) return;
+
+            for (int i = 0; i < _renderers.Length; i++)
+            {
+                if (_renderers[i] == null) continue;
+                _renderers[i].color = _rendererColors[i];
+            }
         }
 
         private void OnDied(GameObject killer)
@@ -121,8 +182,9 @@ namespace RPG.Enemies
                 yield return null;
             }
 
-            // Phase 6 replaces this with a return to the enemy pool, once spawners own enemies.
-            Destroy(gameObject);
+            // Back to the pool if there is one, destroyed if there is not. Either way this
+            // object stops existing as far as the stage is concerned.
+            if (_pooled == null || !_pooled.ReturnToPool()) Destroy(gameObject);
         }
     }
 }

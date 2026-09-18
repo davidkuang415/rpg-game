@@ -47,6 +47,9 @@ namespace RPG.UI
         [SerializeField] private RectTransform slotContainer;
         [SerializeField] private Button slotButtonTemplate;
 
+        [Tooltip("Optional shared hover panel showing an item's stats.")]
+        [SerializeField] private ItemTooltip tooltip;
+
         [Header("Stats")]
         [SerializeField] private RectTransform statContainer;
         [SerializeField] private StatRowView statRowTemplate;
@@ -71,6 +74,8 @@ namespace RPG.UI
         private readonly StringBuilder _builder = new StringBuilder(256);
         private string _message = "Tap an equipped item to select it.";
 
+        private bool _rebuildQueued;
+
         // The slot the action buttons refer to. Null = nothing selected.
         private EquipmentSlot? _selectedSlot;
 
@@ -94,12 +99,28 @@ namespace RPG.UI
             if (wallet != null) wallet.CurrencyChanged -= OnCurrencyChanged;
         }
 
-        private void OnEquipmentChanged(EquipmentSlot slot, EquipmentInstance item) => Refresh();
-        private void OnStatsChanged(PlayerStats stats) => Refresh();
-        private void OnCurrencyChanged(CurrencyType currency, int amount, int delta) => Refresh();
+        private void OnEquipmentChanged(EquipmentSlot slot, EquipmentInstance item) => QueueRebuild();
+        private void OnStatsChanged(PlayerStats stats) => QueueRebuild();
+        private void OnCurrencyChanged(CurrencyType currency, int amount, int delta) => QueueRebuild();
+
+        /// <summary>
+        /// One rebuild at the end of the frame instead of one per event. Upgrading an equipped
+        /// item raises EquipmentChanged, StatsChanged and CurrencyChanged, each of which used to
+        /// respawn every slot tile and every stat row - and doing that inside a Button's onClick
+        /// destroys the Button that is still mid-dispatch.
+        /// </summary>
+        private void QueueRebuild() => _rebuildQueued = true;
+
+        private void LateUpdate()
+        {
+            if (!_rebuildQueued) return;
+            BuildContent();
+        }
 
         protected override void BuildContent()
         {
+            _rebuildQueued = false;
+
             for (int i = 0; i < _spawned.Count; i++)
             {
                 if (_spawned[i] != null) Destroy(_spawned[i]);
@@ -171,6 +192,11 @@ namespace RPG.UI
                     emptySlotColor, $"{slot}\n(empty)");
                 ItemTilePainter.SetSelected(button, item != null && _selectedSlot == slot);
 
+                if (tooltip != null && item != null)
+                {
+                    button.gameObject.AddComponent<ItemTooltipTrigger>().Bind(tooltip, item);
+                }
+
                 EquipmentSlot captured = slot;
                 button.onClick.AddListener(() => OnSlotTapped(captured));
             }
@@ -183,7 +209,7 @@ namespace RPG.UI
             {
                 _selectedSlot = null;
                 _message = $"{slot}: nothing equipped. Swipe to the bag to find something.";
-                Refresh();
+                QueueRebuild();
                 return;
             }
 
@@ -196,7 +222,7 @@ namespace RPG.UI
 
             _selectedSlot = slot;
             _message = $"{ItemTilePainter.DisplayName(item, itemRegistry, rarityTable)}\n\n{DescribeItem(item)}";
-            Refresh();
+            QueueRebuild();
         }
 
         // ------------------------------------------------------------------ actions
@@ -252,7 +278,7 @@ namespace RPG.UI
                 : $"Cannot unequip: {ItemTilePainter.Describe(result)}";
 
             if (result == EquipResult.Success) _selectedSlot = null;
-            Refresh();
+            QueueRebuild();
         }
 
         private void OnUpgradeClicked()
@@ -271,7 +297,7 @@ namespace RPG.UI
                 ? $"Upgraded to +{item.UpgradeLevel} for {cost} gold.\n\n{DescribeItem(item)}"
                 : $"Cannot upgrade {name}: {ItemEconomy.Describe(result)}\n\n{DescribeItem(item)}";
 
-            Refresh();
+            QueueRebuild();
         }
 
         private static void SetLabel(Button button, string text)

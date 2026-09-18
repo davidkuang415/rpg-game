@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: ItemEconomyConfig
   m_EditorClassIdentifier: Assembly-CSharp::RPG.Items.ItemEconomyConfig
   maxUpgradeLevel: 10
-  statBonusPerUpgrade: 0.06
+  statBonusPerUpgrade: 0.1
   baseUpgradeCost: 25
   upgradeCostPerItemLevel: 6
-  upgradeCostGrowth: 1.35
+  upgradeCostGrowth: 1.28
   upgradeCostPerRarityTier: 1.25
   sellValuePerItemLevel: 0.12
-  upgradeRefundFraction: 0.5
+  upgradeRefundFraction: 0.8
   gemRarityThreshold: 4
   gemsAtThreshold: 5
   gemsPerTierAboveThreshold: 10

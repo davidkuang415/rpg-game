@@ -22,8 +22,11 @@ namespace RPG.Items
         [Tooltip("Highest upgrade level any item can reach.")]
         [SerializeField, Min(1)] private int maxUpgradeLevel = 10;
 
-        [Tooltip("Added to every base stat per upgrade level. 0.06 = +6% per level, so +10 is +60%.")]
-        [SerializeField, Min(0f)] private float statBonusPerUpgrade = 0.06f;
+        [Tooltip("Added to every base stat per upgrade level. 0.1 = +10% per level, so +10 is +100%.\n\n" +
+                 "This must out-pace the rarity ladder or nobody will ever upgrade: at +6% per " +
+                 "level a fully maxed Common (x1.6) merely tied a freshly dropped Epic, so the " +
+                 "rational play was always to hoard gold and wait for a drop.")]
+        [SerializeField, Min(0f)] private float statBonusPerUpgrade = 0.1f;
 
         [Tooltip("Gold for the first upgrade of a level 1 Common item.")]
         [SerializeField, Min(0)] private int baseUpgradeCost = 25;
@@ -31,8 +34,8 @@ namespace RPG.Items
         [Tooltip("Added to the cost for every item level above 1.")]
         [SerializeField, Min(0f)] private float upgradeCostPerItemLevel = 6f;
 
-        [Tooltip("Cost multiplier per upgrade level already on the item. 1.35 = each step is 35% dearer.")]
-        [SerializeField, Min(1f)] private float upgradeCostGrowth = 1.35f;
+        [Tooltip("Cost multiplier per upgrade level already on the item. 1.28 = each step is 28% dearer.")]
+        [SerializeField, Min(1f)] private float upgradeCostGrowth = 1.28f;
 
         [Tooltip("Cost multiplier per rarity tier above Common. 1.25 = a Legendary (tier 4) costs 1.25^4.")]
         [SerializeField, Min(1f)] private float upgradeCostPerRarityTier = 1.25f;
@@ -41,8 +44,10 @@ namespace RPG.Items
         [Tooltip("Sell value multiplier per item level above 1, on top of the item's Base Value.")]
         [SerializeField, Min(0f)] private float sellValuePerItemLevel = 0.12f;
 
-        [Tooltip("Fraction of gold spent on upgrades that comes back when the item is sold.")]
-        [SerializeField, Range(0f, 1f)] private float upgradeRefundFraction = 0.5f;
+        [Tooltip("Fraction of gold spent on upgrades that comes back when the item is sold. High on " +
+                 "purpose: gear is replaced constantly, and a heavy tax on switching turns every " +
+                 "upgrade into a bet against your own loot table.")]
+        [SerializeField, Range(0f, 1f)] private float upgradeRefundFraction = 0.8f;
 
         [Header("Selling (gems, high rarities only)")]
         [Tooltip("Lowest rarity that also pays gems when sold.")]

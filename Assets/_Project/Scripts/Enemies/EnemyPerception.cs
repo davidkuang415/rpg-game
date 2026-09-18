@@ -50,6 +50,18 @@ namespace RPG.Enemies
             }
         }
 
+        /// <summary>
+        /// Forgets the player. Needed when an enemy is reused from the pool, which would
+        /// otherwise wake up already alerted to wherever the last occupant last saw the player.
+        /// </summary>
+        public void ResetMemory()
+        {
+            HasVisual = false;
+            LastKnownPosition = transform.position;
+            _lastSeenTime = float.NegativeInfinity;
+            _nextCheckTime = 0f;
+        }
+
         public Vector2 EyePosition => eyes != null ? (Vector2)eyes.position : (Vector2)transform.position;
         public bool PlayerExists => playerReference != null && playerReference.Exists;
 

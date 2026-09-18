@@ -51,6 +51,14 @@ namespace RPG.Player.Input
         // ---- Called by the player ----
 
         /// <summary>
+        /// True while a recent press is still inside the buffer window. Checking does NOT clear
+        /// it - that is the whole point. The old code consumed the press before anything asked
+        /// whether the attack could actually fire, so a press arriving during cooldown was
+        /// eaten and the buffer never did its job once.
+        /// </summary>
+        public bool HasBufferedPress => Time.time - _attackPressTime <= attackPressBufferSeconds;
+
+        /// <summary>
         /// Returns true once per attack press (inside the buffer window) and clears it.
         /// Consuming rather than polling a flag means a press is never dropped and never
         /// counted twice, regardless of script execution order.

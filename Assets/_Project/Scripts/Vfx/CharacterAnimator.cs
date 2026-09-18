@@ -170,6 +170,10 @@ namespace RPG.Vfx
 
         // ------------------------------------------------------------------ per frame
 
+        // Eight is far more than a character ever has running at once; the ninth simultaneous
+        // reaction recycles the stalest slot rather than allocating.
+        private readonly ActiveImpulse[] _impulses = new ActiveImpulse[8];
+
         private void LateUpdate()
         {
             if (_dead)
@@ -179,12 +183,15 @@ namespace RPG.Vfx
                 if (_health == null || !_health.IsAlive) return;
 
                 StopAllCoroutines();
+                ClearImpulses();
                 _dead = false;
                 _impulseOffset = Vector2.zero;
                 _impulseScale = Vector2.zero;
                 _currentLean = 0f;
                 StartCoroutine(SpawnPop());
             }
+
+            TickImpulses(Time.deltaTime);
 
             Vector2 velocity = CurrentVelocity();
             float speed = velocity.magnitude;
@@ -268,8 +275,8 @@ namespace RPG.Vfx
             if (result.WasDodged || _dead) return;
 
             Vector2 away = info.Direction.sqrMagnitude > 0.0001f ? info.Direction.normalized : Vector2.up;
-            StartCoroutine(Impulse(away * recoilDistance, new Vector2(squashAmount, -squashAmount),
-                recoilDuration));
+            AddImpulse(away * recoilDistance, new Vector2(squashAmount, -squashAmount),
+                recoilDuration);
         }
 
         private void OnAttacked(Vector2 direction)
@@ -277,7 +284,7 @@ namespace RPG.Vfx
             if (_dead) return;
 
             Vector2 toward = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.down;
-            StartCoroutine(Impulse(toward * lungeDistance, new Vector2(0.08f, -0.06f), lungeDuration));
+            AddImpulse(toward * lungeDistance, new Vector2(0.08f, -0.06f), lungeDuration);
         }
 
         private void OnTelegraphed(Vector2 direction)
@@ -289,8 +296,8 @@ namespace RPG.Vfx
                 ? _enemyStats.Data.AttackWindupSeconds
                 : 0.3f;
 
-            StartCoroutine(Impulse(away * lungeDistance * windupPullback, new Vector2(-0.06f, 0.1f),
-                Mathf.Max(0.05f, windup), holdAtPeak: true));
+            AddImpulse(away * lungeDistance * windupPullback, new Vector2(-0.06f, 0.1f),
+                Mathf.Max(0.05f, windup), holdAtPeak: true);
         }
 
         private void OnDied(GameObject killer)
@@ -308,35 +315,111 @@ namespace RPG.Vfx
         /// Out fast, back slow. With holdAtPeak the pose is reached and kept until the
         /// duration ends (a windup), otherwise it peaks a third of the way in and eases home.
         /// </summary>
-        private IEnumerator Impulse(Vector2 offset, Vector2 scale, float duration, bool holdAtPeak = false)
+        /// <summary>
+        /// Starts a squash/recoil/lunge without allocating.
+        ///
+        /// This used to be a coroutine per event. A Knight swing lands on every enemy in a 120
+        /// degree cone, so one attack into five enemies allocated five iterators plus Unity's
+        /// five coroutine wrappers - sustained GC pressure on exactly the frames the player is
+        /// watching. The state is a few floats, so it lives in a fixed array and is ticked from
+        /// LateUpdate instead.
+        /// </summary>
+        private void AddImpulse(Vector2 offset, Vector2 scale, float duration, bool holdAtPeak = false)
         {
-            float elapsed = 0f;
-            Vector2 lastOffset = Vector2.zero;
-            Vector2 lastScale = Vector2.zero;
+            if (duration <= 0f) return;
 
-            while (elapsed < duration)
+            int slot = -1;
+            float oldest = -1f;
+
+            for (int i = 0; i < _impulses.Length; i++)
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
+                if (!_impulses[i].Active)
+                {
+                    slot = i;
+                    break;
+                }
 
-                float weight = holdAtPeak
-                    ? Mathf.Clamp01(t * 4f)                                     // reach fast, then hold
-                    : (t < 0.33f ? t / 0.33f : 1f - (t - 0.33f) / 0.67f);       // spike, then ease home
-                weight = holdAtPeak ? weight : Mathf.SmoothStep(0f, 1f, weight);
+                // Every slot busy: the one closest to finishing is recycled, so a burst of hits
+                // drops the stalest reaction rather than being ignored.
+                float progress = _impulses[i].Elapsed / _impulses[i].Duration;
+                if (progress <= oldest) continue;
 
-                Vector2 newOffset = offset * weight;
-                Vector2 newScale = scale * weight;
-
-                _impulseOffset += newOffset - lastOffset;
-                _impulseScale += newScale - lastScale;
-                lastOffset = newOffset;
-                lastScale = newScale;
-
-                yield return null;
+                oldest = progress;
+                slot = i;
             }
 
-            _impulseOffset -= lastOffset;
-            _impulseScale -= lastScale;
+            if (slot < 0) return;
+
+            // Reusing a live slot means backing out its current contribution first, or the pose
+            // keeps an offset that nothing will ever remove.
+            if (_impulses[slot].Active) RemoveContribution(ref _impulses[slot]);
+
+            _impulses[slot] = new ActiveImpulse
+            {
+                Offset = offset,
+                Scale = scale,
+                Duration = duration,
+                Elapsed = 0f,
+                HoldAtPeak = holdAtPeak,
+                Active = true
+            };
+        }
+
+        private void TickImpulses(float deltaTime)
+        {
+            for (int i = 0; i < _impulses.Length; i++)
+            {
+                if (!_impulses[i].Active) continue;
+
+                _impulses[i].Elapsed += deltaTime;
+                float t = Mathf.Clamp01(_impulses[i].Elapsed / _impulses[i].Duration);
+
+                float weight = _impulses[i].HoldAtPeak
+                    ? Mathf.Clamp01(t * 4f)                                     // reach fast, then hold
+                    : (t < 0.33f ? t / 0.33f : 1f - (t - 0.33f) / 0.67f);       // spike, then ease home
+                if (!_impulses[i].HoldAtPeak) weight = Mathf.SmoothStep(0f, 1f, weight);
+
+                Vector2 newOffset = _impulses[i].Offset * weight;
+                Vector2 newScale = _impulses[i].Scale * weight;
+
+                // Applied as deltas, so this composes with the other writers of these two
+                // accumulators (the spawn pop) instead of overwriting them.
+                _impulseOffset += newOffset - _impulses[i].LastOffset;
+                _impulseScale += newScale - _impulses[i].LastScale;
+                _impulses[i].LastOffset = newOffset;
+                _impulses[i].LastScale = newScale;
+
+                if (t < 1f) continue;
+
+                RemoveContribution(ref _impulses[i]);
+                _impulses[i].Active = false;
+            }
+        }
+
+        private void RemoveContribution(ref ActiveImpulse impulse)
+        {
+            _impulseOffset -= impulse.LastOffset;
+            _impulseScale -= impulse.LastScale;
+            impulse.LastOffset = Vector2.zero;
+            impulse.LastScale = Vector2.zero;
+        }
+
+        private void ClearImpulses()
+        {
+            for (int i = 0; i < _impulses.Length; i++) _impulses[i] = default;
+        }
+
+        /// <summary>One running squash/recoil/lunge. Plain data, deliberately not a coroutine.</summary>
+        private struct ActiveImpulse
+        {
+            public Vector2 Offset;
+            public Vector2 Scale;
+            public Vector2 LastOffset;
+            public Vector2 LastScale;
+            public float Duration;
+            public float Elapsed;
+            public bool HoldAtPeak;
+            public bool Active;
         }
 
         private IEnumerator SpawnPop()

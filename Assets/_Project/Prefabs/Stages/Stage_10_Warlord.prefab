@@ -373,6 +373,7 @@ MonoBehaviour:
   prefabOverride: {fileID: 0}
   levelOffset: 0
   spawnAsElite: 0
+  enemyPool: {fileID: 11400000, guid: a4bdd25bba479467bbc0ee7e0a210541, type: 2}
   gizmoColor: {r: 1, g: 0.35, b: 0.35, a: 0.9}
   gizmoRadius: 0.5
 --- !u!1 &1951825646548961384
@@ -558,6 +559,7 @@ MonoBehaviour:
   prefabOverride: {fileID: 0}
   levelOffset: 1
   spawnAsElite: 0
+  enemyPool: {fileID: 11400000, guid: a4bdd25bba479467bbc0ee7e0a210541, type: 2}
   gizmoColor: {r: 1, g: 0.35, b: 0.35, a: 0.9}
   gizmoRadius: 0.5
 --- !u!1 &2723701380531867113
@@ -933,6 +935,7 @@ MonoBehaviour:
   prefabOverride: {fileID: 0}
   levelOffset: 0
   spawnAsElite: 0
+  enemyPool: {fileID: 11400000, guid: a4bdd25bba479467bbc0ee7e0a210541, type: 2}
   gizmoColor: {r: 1, g: 0.35, b: 0.35, a: 0.9}
   gizmoRadius: 0.5
 --- !u!1 &3071029576559919752
@@ -1866,6 +1869,7 @@ MonoBehaviour:
   prefabOverride: {fileID: 0}
   levelOffset: 0
   spawnAsElite: 0
+  enemyPool: {fileID: 11400000, guid: a4bdd25bba479467bbc0ee7e0a210541, type: 2}
   gizmoColor: {r: 1, g: 0.35, b: 0.35, a: 0.9}
   gizmoRadius: 0.5
 --- !u!1 &5439440082275011004
@@ -2241,6 +2245,7 @@ MonoBehaviour:
   prefabOverride: {fileID: 0}
   levelOffset: 0
   spawnAsElite: 0
+  enemyPool: {fileID: 11400000, guid: a4bdd25bba479467bbc0ee7e0a210541, type: 2}
   gizmoColor: {r: 1, g: 0.35, b: 0.35, a: 0.9}
   gizmoRadius: 0.5
 --- !u!1 &6171679964905889260
@@ -2743,6 +2748,7 @@ MonoBehaviour:
   prefabOverride: {fileID: 0}
   levelOffset: 1
   spawnAsElite: 0
+  enemyPool: {fileID: 11400000, guid: a4bdd25bba479467bbc0ee7e0a210541, type: 2}
   gizmoColor: {r: 1, g: 0.35, b: 0.35, a: 0.9}
   gizmoRadius: 0.5
 --- !u!1 &7271562565611935794
@@ -2793,6 +2799,7 @@ MonoBehaviour:
   prefabOverride: {fileID: 0}
   levelOffset: 1
   spawnAsElite: 0
+  enemyPool: {fileID: 11400000, guid: a4bdd25bba479467bbc0ee7e0a210541, type: 2}
   gizmoColor: {r: 1, g: 0.35, b: 0.35, a: 0.9}
   gizmoRadius: 0.5
 --- !u!1 &7276996768871898622
@@ -3027,6 +3034,7 @@ MonoBehaviour:
   prefabOverride: {fileID: 0}
   levelOffset: 0
   spawnAsElite: 0
+  enemyPool: {fileID: 11400000, guid: a4bdd25bba479467bbc0ee7e0a210541, type: 2}
   gizmoColor: {r: 1, g: 0.35, b: 0.35, a: 0.9}
   gizmoRadius: 0.5
 --- !u!1 &7664781645970159868
@@ -3761,6 +3769,7 @@ MonoBehaviour:
   prefabOverride: {fileID: 0}
   levelOffset: 1
   spawnAsElite: 0
+  enemyPool: {fileID: 11400000, guid: a4bdd25bba479467bbc0ee7e0a210541, type: 2}
   gizmoColor: {r: 1, g: 0.35, b: 0.35, a: 0.9}
   gizmoRadius: 0.5
 --- !u!1 &9015559373584213688

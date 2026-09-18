@@ -40,6 +40,9 @@ namespace RPG.UI
         [SerializeField] private RectTransform bagContainer;
         [SerializeField] private Button bagButtonTemplate;
 
+        [Tooltip("Optional shared hover panel showing an item's stats.")]
+        [SerializeField] private ItemTooltip tooltip;
+
         [Header("Info")]
         [SerializeField] private Text detailsLabel;
         [SerializeField] private Text headerLabel;
@@ -51,6 +54,11 @@ namespace RPG.UI
         [SerializeField] private Button upgradeButton;
         [SerializeField] private Button sellButton;
 
+        [Header("Safety")]
+        [Tooltip("How long the SELL confirmation stays armed. After this it disarms itself, so " +
+                 "a confirmation cannot survive a trip to another page.")]
+        [SerializeField, Min(1f)] private float sellConfirmSeconds = 4f;
+
         [Header("Style")]
         [SerializeField] private Color emptySlotColor = new Color(0.16f, 0.17f, 0.2f);
 
@@ -60,7 +68,12 @@ namespace RPG.UI
 
         private string _message = "Tap an item to see what it does.";
         private EquipmentInstance _selected;
-        private bool _sellArmed;
+        // A timed window rather than a plain flag. As a flag it survived swiping to another
+        // page and back, leaving a destructive button still armed minutes later.
+        private float _sellArmedUntil;
+        private bool _rebuildQueued;
+
+        private bool SellArmed => Time.unscaledTime < _sellArmedUntil;
 
         private void Awake()
         {
@@ -75,7 +88,7 @@ namespace RPG.UI
         {
             if (inventory != null)
             {
-                inventory.InventoryChanged += Refresh;
+                inventory.InventoryChanged += QueueRebuild;
                 inventory.CapacityChanged += OnCapacityChanged;
             }
             if (equipment != null) equipment.EquipmentChanged += OnEquipmentChanged;
@@ -86,19 +99,38 @@ namespace RPG.UI
         {
             if (inventory != null)
             {
-                inventory.InventoryChanged -= Refresh;
+                inventory.InventoryChanged -= QueueRebuild;
                 inventory.CapacityChanged -= OnCapacityChanged;
             }
             if (equipment != null) equipment.EquipmentChanged -= OnEquipmentChanged;
             if (wallet != null) wallet.CurrencyChanged -= OnCurrencyChanged;
         }
 
-        private void OnCapacityChanged(int capacity) => Refresh();
-        private void OnEquipmentChanged(EquipmentSlot slot, EquipmentInstance item) => Refresh();
-        private void OnCurrencyChanged(CurrencyType currency, int amount, int delta) => Refresh();
+        private void OnCapacityChanged(int capacity) => QueueRebuild();
+        private void OnEquipmentChanged(EquipmentSlot slot, EquipmentInstance item) => QueueRebuild();
+        private void OnCurrencyChanged(CurrencyType currency, int amount, int delta) => QueueRebuild();
+
+        /// <summary>
+        /// Marks the page for one rebuild at the end of the frame instead of rebuilding now.
+        ///
+        /// Two problems, one fix. Selling an item raises InventoryChanged AND CurrencyChanged AND
+        /// the caller's own refresh, so a single tap used to tear down and respawn every tile in
+        /// the bag three times over. And rebuilding inside a Button's onClick destroys the very
+        /// Button that is still mid-dispatch, which is how you get intermittent
+        /// MissingReferenceException on tap. Deferring to LateUpdate solves both.
+        /// </summary>
+        private void QueueRebuild() => _rebuildQueued = true;
+
+        private void LateUpdate()
+        {
+            if (!_rebuildQueued) return;
+            BuildContent();
+        }
 
         protected override void BuildContent()
         {
+            _rebuildQueued = false;
+
             for (int i = 0; i < _spawned.Count; i++)
             {
                 if (_spawned[i] != null) Destroy(_spawned[i]);
@@ -109,7 +141,7 @@ namespace RPG.UI
             if (_selected != null && (inventory == null || !inventory.Contains(_selected)))
             {
                 _selected = null;
-                _sellArmed = false;
+                _sellArmedUntil = 0f;
             }
 
             BuildBag();
@@ -146,6 +178,11 @@ namespace RPG.UI
 
                 if (item == null) continue;
 
+                if (tooltip != null)
+                {
+                    button.gameObject.AddComponent<ItemTooltipTrigger>().Bind(tooltip, item);
+                }
+
                 ItemTilePainter.SetSelected(button, item == _selected);
 
                 EquipmentInstance captured = item;
@@ -163,9 +200,9 @@ namespace RPG.UI
             }
 
             _selected = item;
-            _sellArmed = false;
+            _sellArmedUntil = 0f;
             _message = DescribeSelected();
-            Refresh();
+            QueueRebuild();
         }
 
         // ------------------------------------------------------------------ actions
@@ -207,7 +244,7 @@ namespace RPG.UI
                     sellButton.interactable = hasSelection;
 
                     if (!hasSelection) SetLabel(sellButton, "SELL");
-                    else if (_sellArmed) SetLabel(sellButton, "SURE?\ntap again");
+                    else if (SellArmed) SetLabel(sellButton, "SURE?\ntap again");
                     else
                     {
                         int gold = economy.GetSellGold(_selected);
@@ -236,8 +273,8 @@ namespace RPG.UI
                 ? $"Equipped {name}.\n\n{stats}"
                 : $"Cannot equip {name}:\n{ItemTilePainter.Describe(result)}\n\n{stats}";
 
-            _sellArmed = false;
-            Refresh();
+            _sellArmedUntil = 0f;
+            QueueRebuild();
         }
 
         private void OnUpgradeClicked()
@@ -254,20 +291,20 @@ namespace RPG.UI
                 ? $"Upgraded to +{item.UpgradeLevel} for {cost} gold.\n\n{DescribeStats(item)}"
                 : $"Cannot upgrade {name}: {ItemEconomy.Describe(result)}\n\n{DescribeStats(item)}";
 
-            _sellArmed = false;
-            Refresh();
+            _sellArmedUntil = 0f;
+            QueueRebuild();
         }
 
         private void OnSellClicked()
         {
             if (_selected == null || economy == null) return;
 
-            if (!_sellArmed)
+            if (!SellArmed)
             {
-                _sellArmed = true;
+                _sellArmedUntil = Time.unscaledTime + sellConfirmSeconds;
                 _message = $"Sell {ItemTilePainter.DisplayName(_selected, itemRegistry, rarityTable)}?\n" +
-                           "This cannot be undone. Tap SELL again to confirm.";
-                Refresh();
+                           $"This cannot be undone. Tap SELL again within {sellConfirmSeconds:0} seconds.";
+                QueueRebuild();
                 return;
             }
 
@@ -288,8 +325,8 @@ namespace RPG.UI
                 _message = $"Cannot sell {name}: {ItemEconomy.Describe(result)}";
             }
 
-            _sellArmed = false;
-            Refresh();
+            _sellArmedUntil = 0f;
+            QueueRebuild();
         }
 
         // ------------------------------------------------------------------ header
@@ -324,7 +361,7 @@ namespace RPG.UI
                 ? $"Bag expanded to {inventory.Capacity} slots."
                 : "Not enough gems.";
 
-            Refresh();
+            QueueRebuild();
         }
 
         // ------------------------------------------------------------------ helpers

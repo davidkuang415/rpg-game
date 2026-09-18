@@ -5,6 +5,7 @@ using RPG.Classes;
 using RPG.Economy;
 using RPG.Inventory;
 using RPG.Items;
+using RPG.Loot;
 using RPG.Player;
 using RPG.Progression;
 using RPG.Stages;
@@ -38,6 +39,9 @@ namespace RPG.Save
         [SerializeField] private InventoryManager inventory;
         [SerializeField] private EquipmentManager equipment;
         [SerializeField] private StageProgressState stageProgress;
+
+        [Tooltip("Holds rewards the bag had no room for. Saved so overflow survives a quit.")]
+        [SerializeField] private StageRewardCollector rewardCollector;
 
         [Tooltip("Only used to restore the starting bag size on a profile reset.")]
         [SerializeField] private InventoryConfig inventoryConfig;
@@ -159,8 +163,30 @@ namespace RPG.Save
                 }
             }
 
-            // Reward Storage is captured here once that system exists; the list stays empty
-            // until then so the format does not change when it arrives.
+            // Unclaimed rewards. Until this was written, anything that did not fit in the bag
+            // sat in a plain object on a MonoBehaviour and was destroyed on quit - so a player
+            // with a full bag lost every overflow item, silently, with no message.
+            if (rewardCollector != null)
+            {
+                long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                IReadOnlyList<EquipmentInstance> pending = rewardCollector.Pending.Items;
+
+                for (int i = 0; i < pending.Count; i++)
+                {
+                    if (pending[i] == null) continue;
+
+                    data.RewardStorage.Add(new RewardStorageEntry
+                    {
+                        Item = pending[i],
+                        ClaimedAtUnixSeconds = now,
+
+                        // No expiry yet. Reward Storage's 24 hour timer is a later phase; zero
+                        // means "does not expire" so nothing is thrown away by a rule that has
+                        // not been designed.
+                        ExpiresAtUnixSeconds = 0
+                    });
+                }
+            }
 
             return data;
         }
@@ -242,6 +268,39 @@ namespace RPG.Save
             }
 
             RestoreEquipment(data);
+            RestorePendingRewards(data);
+        }
+
+        /// <summary>
+        /// Puts unclaimed overflow back where it was. It is pushed straight into the collector
+        /// rather than into the bag, because the bag being full is precisely why these items
+        /// were still pending - dumping them in would either fail or overflow it again.
+        /// </summary>
+        private void RestorePendingRewards(SaveData data)
+        {
+            if (rewardCollector == null || data.RewardStorage.Count == 0) return;
+
+            int restored = 0;
+            for (int i = 0; i < data.RewardStorage.Count; i++)
+            {
+                RewardStorageEntry entry = data.RewardStorage[i];
+                if (entry?.Item == null) continue;
+
+                if (itemRegistry != null && itemRegistry.GetDefinition(entry.Item) == null)
+                {
+                    Debug.LogWarning($"[Save] Dropping pending reward with unknown template " +
+                                     $"'{entry.Item.TemplateId}'.", this);
+                    continue;
+                }
+
+                rewardCollector.Pending.AddItem(entry.Item);
+                restored++;
+            }
+
+            if (restored > 0 && logSaves)
+            {
+                Debug.Log($"[Save] Restored {restored} unclaimed reward(s).", this);
+            }
         }
 
         /// <summary>

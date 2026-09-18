@@ -18,7 +18,7 @@ namespace RPG.UI
     /// edge, and snapping to the nearest page when the finger lifts.
     /// </summary>
     [RequireComponent(typeof(ScrollRect))]
-    public class SwipePageView : MonoBehaviour, IEndDragHandler, IBeginDragHandler
+    public class SwipePageView : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         [Header("Feel")]
         [Tooltip("Fraction of a page width that counts as a deliberate swipe rather than a nudge.")]
@@ -42,6 +42,7 @@ namespace RPG.UI
         private float _animTo;
         private float _animElapsed;
         private float _dragStartX;
+        private float _dragVelocity;
 
         /// <summary>Raised when the visible page changes, with the new page index.</summary>
         public event Action<int> PageChanged;
@@ -141,6 +142,26 @@ namespace RPG.UI
         {
             _animating = false;
             _dragStartX = _scroll.content != null ? _scroll.content.anchoredPosition.x : 0f;
+            _dragVelocity = 0f;
+        }
+
+        /// <summary>
+        /// Tracks the drag's own speed.
+        ///
+        /// ScrollRect.velocity cannot be trusted here: this component switches inertia OFF (it
+        /// fights paging), and with inertia disabled ScrollRect has no reason to maintain a
+        /// velocity for us to read. Measuring the pointer directly means a quick flick is
+        /// detected whatever ScrollRect does internally.
+        /// </summary>
+        public void OnDrag(PointerEventData eventData)
+        {
+            float dt = Time.unscaledDeltaTime;
+            if (dt <= 0f) return;
+
+            float instant = eventData.delta.x / dt;
+
+            // Smoothed, so one stuttering frame at the end of a drag cannot read as a flick.
+            _dragVelocity = Mathf.Lerp(_dragVelocity, instant, 0.6f);
         }
 
         public void OnEndDrag(PointerEventData eventData)
@@ -153,11 +174,12 @@ namespace RPG.UI
             // Dragging content left (negative) moves forward through the pages.
             int target = _currentPage;
 
-            bool flicked = Mathf.Abs(eventData.delta.x) > 0f &&
-                           Mathf.Abs(_scroll.velocity.x) / _pageWidth > flickVelocity;
+            bool flicked = Mathf.Abs(_dragVelocity) / _pageWidth > flickVelocity;
 
-            if (pagesTravelled <= -swipeThreshold || (flicked && travelled < 0f)) target = _currentPage + 1;
-            else if (pagesTravelled >= swipeThreshold || (flicked && travelled > 0f)) target = _currentPage - 1;
+            // A flick is judged by the direction of the FLICK, not of the total travel: a drag
+            // that wandered back and forth should follow the way the thumb was going when it left.
+            if (pagesTravelled <= -swipeThreshold || (flicked && _dragVelocity < 0f)) target = _currentPage + 1;
+            else if (pagesTravelled >= swipeThreshold || (flicked && _dragVelocity > 0f)) target = _currentPage - 1;
 
             GoToPage(target);
         }

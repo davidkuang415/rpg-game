@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 namespace RPG.Core.Combat
@@ -32,7 +31,8 @@ namespace RPG.Core.Combat
         private SpriteRenderer _renderer;
         private Health _health;
         private Color _baseColor;
-        private Coroutine _routine;
+        private float _flashRemaining;
+        private Color _flashColor;
 
         private void Awake()
         {
@@ -59,11 +59,10 @@ namespace RPG.Core.Combat
             if (_health != null) _health.DamageTaken -= OnDamageTaken;
 
             // A pooled or disabled object must not come back still wearing the flash tint.
-            if (_routine != null)
+            if (_flashRemaining > 0f)
             {
-                StopCoroutine(_routine);
-                _routine = null;
-                if (_renderer != null) _renderer.color = _baseColor;
+                _flashRemaining = 0f;
+                if (_renderer != null) _renderer.color = WithAlpha(_baseColor, _renderer.color.a);
             }
         }
 
@@ -71,24 +70,34 @@ namespace RPG.Core.Combat
         {
             if (result.WasDodged || _renderer == null) return;
 
-            // Re-read the base colour in case something else (class tint) changed it.
-            if (_routine != null) StopCoroutine(_routine);
-            else _baseColor = _renderer.color;
+            // Re-read the base colour in case something else (class tint) changed it. Only when
+            // no flash is already running, or a second hit would capture the flash colour as the
+            // colour to return to and the character would stay lit up.
+            if (_flashRemaining <= 0f) _baseColor = _renderer.color;
 
-            Color color = info.IsCritical ? criticalFlashColor : flashColor;
-            float duration = info.IsCritical ? flashDuration * criticalDurationMultiplier : flashDuration;
+            _flashColor = info.IsCritical ? criticalFlashColor : flashColor;
+            _flashRemaining = info.IsCritical
+                ? flashDuration * criticalDurationMultiplier
+                : flashDuration;
 
-            _routine = StartCoroutine(Flash(color, duration));
+            // Alpha is left alone, so a fatal hit's flash cannot snap a fading corpse back to
+            // fully opaque.
+            _renderer.color = WithAlpha(_flashColor, _renderer.color.a);
         }
 
-        private IEnumerator Flash(Color color, float duration)
+        /// <summary>
+        /// Counts the flash down without a coroutine. One swing into a cone of five enemies used
+        /// to allocate five iterators plus Unity's five coroutine wrappers, every swing.
+        /// </summary>
+        private void Update()
         {
-            // Alpha is left alone both ways, so a fatal hit's flash cannot snap a fading
-            // corpse back to fully opaque when it ends.
-            _renderer.color = WithAlpha(color, _renderer.color.a);
-            yield return new WaitForSeconds(duration);
-            _renderer.color = WithAlpha(_baseColor, _renderer.color.a);
-            _routine = null;
+            if (_flashRemaining <= 0f) return;
+
+            _flashRemaining -= Time.deltaTime;
+            if (_flashRemaining > 0f) return;
+
+            _flashRemaining = 0f;
+            if (_renderer != null) _renderer.color = WithAlpha(_baseColor, _renderer.color.a);
         }
 
         private static Color WithAlpha(Color color, float alpha) =>

@@ -403,7 +403,7 @@ namespace RPG.EditorTools
         /// </summary>
         private static void KeepModalScreensOnTop(GameObject hud)
         {
-            string[] onTop = { "ClassSelectPanel", "StageCompletePanel", "StageFailedPanel" };
+            string[] onTop = { "ClassSelectPanel", "StageCompletePanel", "StageFailedPanel", "ItemTooltip" };
 
             for (int i = 0; i < onTop.Length; i++)
             {
@@ -441,7 +441,9 @@ namespace RPG.EditorTools
             viewportRect.anchorMin = Vector2.zero;
             viewportRect.anchorMax = Vector2.one;
             viewportRect.offsetMin = new Vector2(30f, 30f);
-            viewportRect.offsetMax = new Vector2(-30f, -230f);
+            // 290, not 230: the tab bar ends 260 below the canvas top, so a viewport starting
+            // at 230 put the top of every page underneath the GEAR and BAG tabs.
+            viewportRect.offsetMax = new Vector2(-30f, -290f);
             viewport.raycastTarget = true;
             viewport.gameObject.AddComponent<RectMask2D>();
 
@@ -459,9 +461,11 @@ namespace RPG.EditorTools
 
             var swipe = viewport.gameObject.AddComponent<SwipePageView>();
 
+            ItemTooltip tooltip = BuildItemTooltip(hud);
+
             StageSelectPanel stages = BuildStagesPage(pages);
-            GearPage gear = BuildGearPage(pages, systems, player);
-            InventoryPanel bag = BuildBagPage(pages, systems, player);
+            GearPage gear = BuildGearPage(pages, systems, player, tooltip);
+            InventoryPanel bag = BuildBagPage(pages, systems, player, tooltip);
 
             var hub = root.gameObject.AddComponent<HubScreen>();
             EditorSetupUtility.SetPrivateObjectList(hub, "pages",
@@ -483,22 +487,25 @@ namespace RPG.EditorTools
         private static StageSelectPanel BuildStagesPage(RectTransform pages)
         {
             RectTransform page = CreatePage("StagesPage", pages);
+            RectTransform content = CreateScrollContent(page, 1000f);
 
-            Text headline = TopLabel(page, "Headline", string.Empty, 34, TextAnchor.MiddleCenter,
+            Text headline = TopLabel(content, "Headline", string.Empty, 34, TextAnchor.MiddleCenter,
                 new Vector2(900f, 60f), -10f);
             headline.color = new Color(0.95f, 0.85f, 0.45f);
 
-            RectTransform list = TopRect("ButtonContainer", page, new Vector2(940f, 1300f), -90f);
-            var layout = list.gameObject.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 22f;
+            // Two columns, not one. Ten stages in a single column is 1,720 units of list in a
+            // viewport that is only about 800 units tall on a landscape screen - which is why
+            // stage 5 onwards could not be reached at all.
+            RectTransform list = TopRect("ButtonContainer", content, new Vector2(960f, 860f), -90f);
+            var layout = list.gameObject.AddComponent<GridLayoutGroup>();
+            layout.cellSize = new Vector2(465f, 140f);
+            layout.spacing = new Vector2(14f, 14f);
+            layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            layout.constraintCount = 2;
             layout.childAlignment = TextAnchor.UpperCenter;
-            layout.childForceExpandHeight = false;
-            layout.childControlHeight = false;
-            layout.childForceExpandWidth = false;
-            layout.childControlWidth = false;
 
-            Button template = LabeledButton("StageButtonTemplate", list, "Stage", 34,
-                new Color(0.18f, 0.28f, 0.22f), new Vector2(900f, 150f));
+            Button template = LabeledButton("StageButtonTemplate", list, "Stage", 30,
+                new Color(0.18f, 0.28f, 0.22f), new Vector2(465f, 140f));
             template.gameObject.SetActive(false);
 
             var panel = page.gameObject.AddComponent<StageSelectPanel>();
@@ -516,14 +523,16 @@ namespace RPG.EditorTools
 
         // ------------------------------------------------------------------ page 2: gear
 
-        private static GearPage BuildGearPage(RectTransform pages, GameObject systems, GameObject player)
+        private static GearPage BuildGearPage(RectTransform pages, GameObject systems, GameObject player,
+            ItemTooltip tooltip)
         {
             RectTransform page = CreatePage("GearPage", pages);
+            RectTransform content = CreateScrollContent(page, 1730f);
 
-            Text className = TopLabel(page, "ClassLabel", "KNIGHT", 44, TextAnchor.MiddleCenter,
+            Text className = TopLabel(content, "ClassLabel", "KNIGHT", 44, TextAnchor.MiddleCenter,
                 new Vector2(900f, 60f), -10f);
 
-            Text level = TopLabel(page, "LevelLabel", "Level 1", 28, TextAnchor.MiddleCenter,
+            Text level = TopLabel(content, "LevelLabel", "Level 1", 28, TextAnchor.MiddleCenter,
                 new Vector2(900f, 40f), -80f);
             level.color = HeaderColor;
 
@@ -531,7 +540,7 @@ namespace RPG.EditorTools
             // and ignores fillAmount entirely, so the bar would always look full.
             var square = AssetDatabase.LoadAssetAtPath<Sprite>(SquareSpritePath);
 
-            Image xpBack = EditorSetupUtility.CreateUiImage("XpBar", page, square,
+            Image xpBack = EditorSetupUtility.CreateUiImage("XpBar", content, square,
                 new Color(0.14f, 0.15f, 0.18f));
             PlaceTop((RectTransform)xpBack.transform, new Vector2(700f, 18f), -130f);
 
@@ -543,15 +552,15 @@ namespace RPG.EditorTools
             xpFill.fillOrigin = (int)Image.OriginHorizontal.Left;
             xpFill.fillAmount = 0f;
 
-            Text currency = TopLabel(page, "CurrencyLabel", "Gold 0     Gems 0", 28,
+            Text currency = TopLabel(content, "CurrencyLabel", "Gold 0     Gems 0", 28,
                 TextAnchor.MiddleCenter, new Vector2(900f, 40f), -165f);
             currency.color = new Color(0.9f, 0.82f, 0.5f);
 
-            Text equippedHeader = TopLabel(page, "EquippedHeader", "EQUIPPED", 26,
+            Text equippedHeader = TopLabel(content, "EquippedHeader", "EQUIPPED", 26,
                 TextAnchor.MiddleLeft, new Vector2(940f, 36f), -220f);
             equippedHeader.color = HeaderColor;
 
-            RectTransform slots = TopRect("SlotContainer", page, new Vector2(940f, 340f), -262f);
+            RectTransform slots = TopRect("SlotContainer", content, new Vector2(940f, 340f), -262f);
             var slotGrid = slots.gameObject.AddComponent<GridLayoutGroup>();
             slotGrid.cellSize = new Vector2(300f, 150f);
             slotGrid.spacing = new Vector2(14f, 14f);
@@ -559,11 +568,11 @@ namespace RPG.EditorTools
 
             Button slotTemplate = TileButton("SlotButtonTemplate", slots, 24);
 
-            Text statsHeader = TopLabel(page, "StatsHeader", "STATS", 26, TextAnchor.MiddleLeft,
+            Text statsHeader = TopLabel(content, "StatsHeader", "STATS", 26, TextAnchor.MiddleLeft,
                 new Vector2(940f, 36f), -620f);
             statsHeader.color = HeaderColor;
 
-            RectTransform statList = TopRect("StatContainer", page, new Vector2(940f, 640f), -662f);
+            RectTransform statList = TopRect("StatContainer", content, new Vector2(940f, 660f), -662f);
             var statLayout = statList.gameObject.AddComponent<VerticalLayoutGroup>();
             statLayout.spacing = 2f;
             statLayout.childForceExpandHeight = false;
@@ -576,12 +585,14 @@ namespace RPG.EditorTools
             // Phase 12: the selected slot's actions. UNEQUIP moves it to the bag, UPGRADE
             // spends gold on it. The economy component is optional - without it GearPage
             // hides the upgrade button on its own.
-            Button[] actions = ActionRow(page, -1190f,
+            // Clear of the stat list, which ends at -1322. The previous -1190 printed the
+            // buttons across the bottom two stat rows.
+            Button[] actions = ActionRow(content, -1348f,
                 ("UnequipButton", "UNEQUIP", new Color(0.2f, 0.3f, 0.34f)),
                 ("UpgradeButton", "UPGRADE", new Color(0.36f, 0.3f, 0.16f)));
 
-            Text details = TopLabel(page, "Details", "Tap an equipped item to select it.", 26,
-                TextAnchor.UpperLeft, new Vector2(940f, 240f), -1310f);
+            Text details = TopLabel(content, "Details", "Tap an equipped item to select it.", 26,
+                TextAnchor.UpperLeft, new Vector2(940f, 200f), -1470f);
             details.color = new Color(0.8f, 0.84f, 0.9f);
 
             var gear = page.gameObject.AddComponent<GearPage>();
@@ -607,6 +618,7 @@ namespace RPG.EditorTools
             EditorSetupUtility.SetPrivateField(gear, "statContainer", statList);
             EditorSetupUtility.SetPrivateField(gear, "statRowTemplate", statTemplate);
             EditorSetupUtility.SetPrivateField(gear, "detailsLabel", details);
+            if (tooltip != null) EditorSetupUtility.SetPrivateField(gear, "tooltip", tooltip);
 
             return gear;
         }
@@ -638,21 +650,23 @@ namespace RPG.EditorTools
 
         // ------------------------------------------------------------------ page 3: bag
 
-        private static InventoryPanel BuildBagPage(RectTransform pages, GameObject systems, GameObject player)
+        private static InventoryPanel BuildBagPage(RectTransform pages, GameObject systems, GameObject player,
+            ItemTooltip tooltip)
         {
             RectTransform page = CreatePage("BagPage", pages);
+            RectTransform content = CreateScrollContent(page, 1540f);
 
-            Text header = TopLabel(page, "BagHeader", "0 / 20", 32, TextAnchor.MiddleLeft,
+            Text header = TopLabel(content, "BagHeader", "0 / 20", 32, TextAnchor.MiddleLeft,
                 new Vector2(600f, 50f), -10f);
 
-            Button expand = LabeledButton("ExpandButton", page, "+5 slots", 24,
+            Button expand = LabeledButton("ExpandButton", content, "+5 slots", 24,
                 new Color(0.2f, 0.3f, 0.34f), new Vector2(240f, 90f));
             var expandRect = (RectTransform)expand.transform;
             expandRect.anchorMin = expandRect.anchorMax = new Vector2(1f, 1f);
             expandRect.pivot = new Vector2(1f, 1f);
             expandRect.anchoredPosition = new Vector2(0f, -5f);
 
-            RectTransform grid = TopRect("BagContainer", page, new Vector2(960f, 1000f), -110f);
+            RectTransform grid = TopRect("BagContainer", content, new Vector2(960f, 1000f), -110f);
             var gridLayout = grid.gameObject.AddComponent<GridLayoutGroup>();
             gridLayout.cellSize = new Vector2(228f, 150f);
             gridLayout.spacing = new Vector2(14f, 14f);
@@ -662,13 +676,15 @@ namespace RPG.EditorTools
 
             // Phase 12: what to do with the selected item. Gold has a job now - UPGRADE spends
             // it, SELL earns it (and gems, for Legendary and up).
-            Button[] actions = ActionRow(page, -1120f,
+            // The bag grid ends at -1110, so the buttons start well below it rather than ten
+            // units under the last row of tiles.
+            Button[] actions = ActionRow(content, -1150f,
                 ("EquipButton", "EQUIP", new Color(0.2f, 0.3f, 0.34f)),
                 ("UpgradeButton", "UPGRADE", new Color(0.36f, 0.3f, 0.16f)),
                 ("SellButton", "SELL", new Color(0.4f, 0.18f, 0.2f)));
 
-            Text details = TopLabel(page, "Details", "Tap an item to see what it does.", 26,
-                TextAnchor.UpperLeft, new Vector2(940f, 280f), -1240f);
+            Text details = TopLabel(content, "Details", "Tap an item to see what it does.", 26,
+                TextAnchor.UpperLeft, new Vector2(940f, 230f), -1272f);
             details.color = new Color(0.8f, 0.84f, 0.9f);
 
             var bag = page.gameObject.AddComponent<InventoryPanel>();
@@ -688,6 +704,7 @@ namespace RPG.EditorTools
             EditorSetupUtility.SetPrivateField(bag, "bagButtonTemplate", tile);
             EditorSetupUtility.SetPrivateField(bag, "headerLabel", header);
             EditorSetupUtility.SetPrivateField(bag, "detailsLabel", details);
+            if (tooltip != null) EditorSetupUtility.SetPrivateField(bag, "tooltip", tooltip);
             EditorSetupUtility.SetPrivateField(bag, "expandButton", expand);
             EditorSetupUtility.SetPrivateField(bag, "expandLabel", expand.GetComponentInChildren<Text>());
 
@@ -743,9 +760,17 @@ namespace RPG.EditorTools
             rect.anchoredPosition = new Vector2(-16f, -16f);
             rect.SetAsLastSibling();
 
+            // Two taps, not one. This deletes the save profile outright, and the button floats
+            // above every panel in the only scene - a single unconfirmed tap was one thumb-brush
+            // away from wiping a playtest session.
+            var confirm = button.gameObject.AddComponent<ConfirmTapButton>();
+            EditorSetupUtility.SetPrivateField(confirm, "label", button.GetComponentInChildren<Text>());
+            EditorSetupUtility.SetPrivateField(confirm, "idleText", "RESET");
+            EditorSetupUtility.SetPrivateField(confirm, "armedText", "SURE?");
+
             // A persistent listener, so the wiring is scene data you can see in the Inspector
             // rather than something only this tool knows about.
-            UnityEventTools.AddPersistentListener(button.onClick,
+            UnityEventTools.AddPersistentListener(confirm.Confirmed,
                 new UnityAction(flow.RestartFromZero));
         }
 
@@ -765,6 +790,67 @@ namespace RPG.EditorTools
 
         // ================================================================== UI helpers
 
+        /// <summary>
+        /// The shared hover panel that describes whatever the pointer is over.
+        ///
+        /// Parented to the canvas ROOT rather than to a page, for two reasons: it has to draw
+        /// over everything including the page it belongs to, and its placement maths works in
+        /// canvas space, which only lines up with anchoredPosition if the canvas is its parent.
+        /// </summary>
+        private static ItemTooltip BuildItemTooltip(GameObject hud)
+        {
+            Transform existing = EditorSetupUtility.FindChild(hud.transform, "ItemTooltip");
+            if (existing != null) Object.DestroyImmediate(existing.gameObject);
+
+            GameObject root = EditorSetupUtility.CreateUiObject("ItemTooltip", hud.transform);
+            EditorSetupUtility.StretchFull((RectTransform)root.transform);
+
+            Image panel = EditorSetupUtility.CreateUiImage("Panel", root.transform, null,
+                new Color(0.05f, 0.06f, 0.08f, 0.96f));
+            var panelRect = (RectTransform)panel.transform;
+            panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+
+            // Top-left pivot, so the panel hangs down and right from the pointer.
+            panelRect.pivot = new Vector2(0f, 1f);
+            panelRect.sizeDelta = new Vector2(440f, 320f);
+
+            // Never a raycast target: a tooltip that swallows clicks would make the tile it is
+            // describing impossible to press.
+            panel.raycastTarget = false;
+
+            Text title = EditorSetupUtility.CreateUiText("Title", panelRect, "Item", 28,
+                TextAnchor.UpperLeft);
+            var titleRect = (RectTransform)title.transform;
+            titleRect.anchorMin = new Vector2(0f, 1f);
+            titleRect.anchorMax = new Vector2(1f, 1f);
+            titleRect.pivot = new Vector2(0.5f, 1f);
+            titleRect.offsetMin = new Vector2(16f, 0f);
+            titleRect.offsetMax = new Vector2(-16f, -12f);
+            titleRect.sizeDelta = new Vector2(titleRect.sizeDelta.x, 62f);
+
+            Text body = EditorSetupUtility.CreateUiText("Body", panelRect, string.Empty, 24,
+                TextAnchor.UpperLeft);
+            var bodyRect = (RectTransform)body.transform;
+            EditorSetupUtility.StretchFull(bodyRect);
+            bodyRect.offsetMin = new Vector2(16f, 14f);
+            bodyRect.offsetMax = new Vector2(-16f, -78f);
+            body.color = new Color(0.82f, 0.86f, 0.92f);
+
+            var tooltip = root.AddComponent<ItemTooltip>();
+            EditorSetupUtility.SetPrivateField(tooltip, "panel", panelRect);
+            EditorSetupUtility.SetPrivateField(tooltip, "titleLabel", title);
+            EditorSetupUtility.SetPrivateField(tooltip, "bodyLabel", body);
+            EditorSetupUtility.SetPrivateField(tooltip, "itemRegistry",
+                AssetDatabase.LoadAssetAtPath<ItemRegistry>("Assets/_Project/Data/Items/ItemRegistry.asset"));
+            EditorSetupUtility.SetPrivateField(tooltip, "rarityTable",
+                AssetDatabase.LoadAssetAtPath<RarityTable>("Assets/_Project/Data/Items/RarityTable.asset"));
+            EditorSetupUtility.SetPrivateField(tooltip, "economyConfig",
+                AssetDatabase.LoadAssetAtPath<ItemEconomyConfig>("Assets/_Project/Data/Items/ItemEconomyConfig.asset"));
+
+            panel.gameObject.SetActive(false);
+            return tooltip;
+        }
+
         private static RectTransform CreatePage(string name, RectTransform parent)
         {
             GameObject page = EditorSetupUtility.CreateUiObject(name, parent);
@@ -777,6 +863,49 @@ namespace RPG.EditorTools
             rect.pivot = new Vector2(0.5f, 0.5f);
             rect.sizeDelta = new Vector2(1020f, 0f);
             return rect;
+        }
+
+        /// <summary>
+        /// Wraps a page's contents in a vertical scroll view and returns the rect to build into.
+        ///
+        /// Every page was taller than the screen and simply clipped: on a landscape Game view the
+        /// canvas is about 1080 units tall, so roughly 800 of a 1500-unit page was visible and the
+        /// rest - stages 5 and up, the SELL button, the whole stat sheet - was unreachable. The
+        /// page is not shortened, it is made scrollable, because on a tall phone all of it fits
+        /// and shortening it would waste that space.
+        /// </summary>
+        private static RectTransform CreateScrollContent(RectTransform page, float contentHeight)
+        {
+            Image viewport = EditorSetupUtility.CreateUiImage("Viewport", page, null, Color.clear);
+            var viewportRect = (RectTransform)viewport.transform;
+            EditorSetupUtility.StretchFull(viewportRect);
+            viewport.raycastTarget = true;
+            viewport.gameObject.AddComponent<RectMask2D>();
+
+            GameObject contentObject = EditorSetupUtility.CreateUiObject("Content", viewportRect);
+            var content = (RectTransform)contentObject.transform;
+            content.anchorMin = new Vector2(0f, 1f);
+            content.anchorMax = new Vector2(1f, 1f);
+            content.pivot = new Vector2(0.5f, 1f);
+            content.offsetMin = new Vector2(0f, 0f);
+            content.offsetMax = new Vector2(0f, 0f);
+            content.sizeDelta = new Vector2(0f, contentHeight);
+            content.anchoredPosition = Vector2.zero;
+
+            var scroll = viewport.gameObject.AddComponent<ScrollRect>();
+            scroll.content = content;
+            scroll.viewport = viewportRect;
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Elastic;
+            scroll.elasticity = 0.08f;
+            scroll.scrollSensitivity = 40f;
+
+            // Routes horizontal gestures back out to the hub, which would otherwise never see
+            // them: the inner view swallows every drag that starts inside it.
+            viewport.gameObject.AddComponent<NestedPageScroll>();
+
+            return content;
         }
 
         private static RectTransform TopRect(string name, RectTransform parent, Vector2 size, float y)
@@ -823,10 +952,10 @@ namespace RPG.EditorTools
         /// A horizontal row of equally sized action buttons, centred under a page's content.
         /// Returned in the order given, so callers can wire each one by index.
         /// </summary>
-        private static Button[] ActionRow(RectTransform page, float y,
+        private static Button[] ActionRow(RectTransform parent, float y,
             params (string name, string label, Color color)[] buttons)
         {
-            RectTransform row = TopRect("ActionRow", page, new Vector2(940f, 100f), y);
+            RectTransform row = TopRect("ActionRow", parent, new Vector2(940f, 100f), y);
             var layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.spacing = 16f;
             layout.childForceExpandWidth = true;
