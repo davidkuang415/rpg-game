@@ -60,11 +60,11 @@ namespace RPG.EditorTools
         // ------------------------------------------------------------------ import settings
 
         private static void ConfigureCharacterSprite(string path) =>
-            ConfigureTexture(path, pixelsPerUnit: 16, wrap: TextureWrapMode.Clamp,
+            EditorSetupUtility.ConfigureSpriteImport(path, pixelsPerUnit: 16, wrap: TextureWrapMode.Clamp,
                 meshType: SpriteMeshType.Tight, border: Vector4.zero);
 
         private static void ConfigureFloorTile(string path) =>
-            ConfigureTexture(path, pixelsPerUnit: 16, wrap: TextureWrapMode.Repeat,
+            EditorSetupUtility.ConfigureSpriteImport(path, pixelsPerUnit: 16, wrap: TextureWrapMode.Repeat,
                 meshType: SpriteMeshType.FullRect, border: Vector4.zero);
 
         /// <summary>
@@ -73,41 +73,8 @@ namespace RPG.EditorTools
         /// stretches the shadow). Measured directly from the source pixels, not guessed.
         /// </summary>
         private static void ConfigureButtonPanel(string path) =>
-            ConfigureTexture(path, pixelsPerUnit: 100, wrap: TextureWrapMode.Clamp,
+            EditorSetupUtility.ConfigureSpriteImport(path, pixelsPerUnit: 100, wrap: TextureWrapMode.Clamp,
                 meshType: SpriteMeshType.FullRect, border: new Vector4(4, 9, 4, 4));
-
-        private static void ConfigureTexture(string path, int pixelsPerUnit, TextureWrapMode wrap,
-            SpriteMeshType meshType, Vector4 border)
-        {
-            if (AssetDatabase.LoadAssetAtPath<Texture2D>(path) == null)
-            {
-                Debug.LogError($"[Phase 14] Missing art file: {path}");
-                return;
-            }
-
-            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
-            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
-
-            importer.textureType = TextureImporterType.Sprite;
-            importer.spriteImportMode = SpriteImportMode.Single;
-            importer.spritePixelsPerUnit = pixelsPerUnit;
-            importer.alphaIsTransparency = true;
-            importer.mipmapEnabled = false;
-            importer.wrapMode = wrap;
-
-            // Small source pixels stretched onto large mobile screens: Point keeps every pixel
-            // a crisp square (the intended pixel-art look) instead of Bilinear's soft smear.
-            importer.filterMode = FilterMode.Point;
-            importer.textureCompression = TextureImporterCompression.Uncompressed;
-            importer.spriteBorder = border;
-
-            var settings = new TextureImporterSettings();
-            importer.ReadTextureSettings(settings);
-            settings.spriteMeshType = meshType;
-            importer.SetTextureSettings(settings);
-
-            importer.SaveAndReimport();
-        }
 
         // ------------------------------------------------------------------ player classes
 

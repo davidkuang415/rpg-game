@@ -187,5 +187,41 @@ namespace RPG.EditorTools
             T existing = target.GetComponent<T>();
             return existing != null ? existing : target.AddComponent<T>();
         }
+
+        /// <summary>
+        /// Configures a source PNG already on disk as a sprite: Point filtering (small source
+        /// pixels stretched onto a phone screen stay crisp squares instead of Bilinear's soft
+        /// smear), uncompressed, alpha as transparency. Used for every Kenney-sourced texture -
+        /// see Phase 14's doc for why Point over Bilinear.
+        /// </summary>
+        public static void ConfigureSpriteImport(string path, int pixelsPerUnit, TextureWrapMode wrap,
+            SpriteMeshType meshType, Vector4 border)
+        {
+            if (AssetDatabase.LoadAssetAtPath<Texture2D>(path) == null)
+            {
+                Debug.LogError($"[Setup] Missing art file: {path}");
+                return;
+            }
+
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spritePixelsPerUnit = pixelsPerUnit;
+            importer.alphaIsTransparency = true;
+            importer.mipmapEnabled = false;
+            importer.wrapMode = wrap;
+            importer.filterMode = FilterMode.Point;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.spriteBorder = border;
+
+            var settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.spriteMeshType = meshType;
+            importer.SetTextureSettings(settings);
+
+            importer.SaveAndReimport();
+        }
     }
 }
