@@ -731,6 +731,7 @@ MonoBehaviour:
   currencyLabel: {fileID: 821853981}
   slotContainer: {fileID: 924021603}
   slotButtonTemplate: {fileID: 1494591473}
+  tooltip: {fileID: 0}
   statContainer: {fileID: 1766909705}
   statRowTemplate: {fileID: 1681247463}
   detailsLabel: {fileID: 439110757}
